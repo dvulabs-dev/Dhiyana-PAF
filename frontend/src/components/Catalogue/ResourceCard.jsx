@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Users, Tag } from 'lucide-react';
+import { MapPin, Users, Clock3 } from 'lucide-react';
 import BookingModal from '../Booking/BookingModal';
 
 const ResourceCard = ({ resource }) => {
@@ -16,7 +16,7 @@ const ResourceCard = ({ resource }) => {
 
     return (
         <>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
                 <div className="h-48 overflow-hidden relative">
                     <img 
                         src={resource.imageUrl || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600'} 
@@ -32,32 +32,39 @@ const ResourceCard = ({ resource }) => {
                 
                 <div className="p-5">
                     <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-xl font-bold text-gray-800 truncate">{resource.name}</h3>
-                        <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs font-bold uppercase tracking-wider">
+                        <h3 className="text-xl font-bold text-slate-800 truncate">{resource.name}</h3>
+                        <span className="text-cyan-700 bg-cyan-50 px-2 py-1 rounded text-xs font-bold uppercase tracking-wider">
                             {resource.type}
                         </span>
                     </div>
                     
-                    <p className="text-gray-500 text-sm mb-4 line-clamp-2 h-10">
+                    <p className="text-slate-500 text-sm mb-4 line-clamp-2 h-10">
                         {resource.description}
                     </p>
                     
                     <div className="space-y-2 mb-6">
-                        <div className="flex items-center text-sm text-gray-600">
-                            <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                        <div className="flex items-center text-sm text-slate-600">
+                            <MapPin className="w-4 h-4 mr-2 text-slate-400" />
                             {resource.location}
                         </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                            <Users className="w-4 h-4 mr-2 text-gray-400" />
+                        <div className="flex items-center text-sm text-slate-600">
+                            <Users className="w-4 h-4 mr-2 text-slate-400" />
                             Up to {resource.capacity} people
                         </div>
+                        {(resource.availableFrom || resource.availableTo) && (
+                            <div className="flex items-center text-sm text-slate-600">
+                                <Clock3 className="w-4 h-4 mr-2 text-slate-400" />
+                                {resource.availableFrom || '--:--'} to {resource.availableTo || '--:--'}
+                            </div>
+                        )}
                     </div>
                     
                     <button 
+                        disabled={resource.status !== 'ACTIVE'}
                         onClick={() => setIsBookingModalOpen(true)}
-                        className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+                        className="w-full py-2.5 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-700 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        Book Now
+                        {resource.status === 'ACTIVE' ? 'Book Now' : 'Unavailable'}
                     </button>
                 </div>
             </div>
