@@ -10,6 +10,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -79,7 +81,21 @@ public class JwtService {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secretKey);
+        } catch (Exception ex) {
+            keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        }
+
+        if (keyBytes.length < 32) {
+            try {
+                keyBytes = MessageDigest.getInstance("SHA-256").digest(keyBytes);
+            } catch (Exception ex) {
+                throw new IllegalStateException("Failed to derive JWT signing key", ex);
+            }
+        }
+
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
