@@ -1,6 +1,7 @@
 package com.smartcampus.hub.controller;
 
 import com.smartcampus.hub.dto.LoginRequest;
+import com.smartcampus.hub.dto.RegisterRequest;
 import com.smartcampus.hub.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +19,27 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/login")
-    public ResponseEntity<?> loginWithGoogle(@RequestBody LoginRequest request) {
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
-            String token = authService.loginWithGoogle(request.getIdToken());
+            String token = authService.register(request);
             return ResponseEntity.ok(Map.of("token", token));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Registration failed."));
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            String token = authService.login(request);
+            return ResponseEntity.ok(Map.of("token", token));
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Login failed."));
         }
     }
 }

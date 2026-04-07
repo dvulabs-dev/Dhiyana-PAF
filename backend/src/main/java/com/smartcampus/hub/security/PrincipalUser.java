@@ -6,6 +6,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 public class PrincipalUser implements UserDetails {
@@ -18,6 +19,9 @@ public class PrincipalUser implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (user.getRoles() == null) {
+            return Collections.emptyList();
+        }
         return user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .collect(Collectors.toList());
@@ -25,7 +29,7 @@ public class PrincipalUser implements UserDetails {
 
     @Override
     public String getPassword() {
-        return null; // OAuth2 users don't have passwords
+        return user.getPassword();
     }
 
     @Override
