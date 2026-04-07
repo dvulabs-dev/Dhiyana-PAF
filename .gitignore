@@ -1,0 +1,4 @@
+.metadata/
+
+# Ignore all Maven/Gradle target build directories anywhere in the repo
+**/target/
