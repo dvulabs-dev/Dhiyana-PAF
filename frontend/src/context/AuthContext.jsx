@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = (jwt) => {
+    setLoading(true);
     setToken(jwt);
   };
 

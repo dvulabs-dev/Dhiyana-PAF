@@ -27,6 +27,8 @@ public class Resource {
     private String description;
     private String location;
     private int capacity;
+    private String availableFrom;
+    private String availableTo;
     
     private ResourceType type;
     private ResourceStatus status;

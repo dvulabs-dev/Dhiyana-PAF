@@ -45,7 +45,7 @@ const Navbar = () => {
                     <div className="flex items-center gap-4">
                         <div className="hidden md:flex flex-col items-end mr-2 text-right">
                             <span className="text-sm font-bold text-gray-900">{user?.name}</span>
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{user?.roles[0]}</span>
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{user?.roles?.[0]}</span>
                         </div>
                         <div className="relative group">
                             <button className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-blue-500 transition-all">
