@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getMyBookings, cancelBooking } from '../../services/bookingApi';
 import { toast } from 'react-hot-toast';
-import { Calendar, Clock, Trash2, AlertCircle, CheckCircle, XCircle } from 'lucide-material';
-// Wait, I'll use lucide-react.
-
-import { MapPin, Info } from 'lucide-react';
+import { Calendar, Clock, Trash2, Info } from 'lucide-react';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
