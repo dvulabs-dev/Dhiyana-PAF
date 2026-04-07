@@ -1,19 +1,16 @@
 package com.smartcampus.hub.service;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
+import com.smartcampus.hub.dto.LoginRequest;
+import com.smartcampus.hub.dto.RegisterRequest;
 import com.smartcampus.hub.entity.User;
 import com.smartcampus.hub.enums.Role;
 import com.smartcampus.hub.repository.UserRepository;
 import com.smartcampus.hub.security.JwtService;
 import com.smartcampus.hub.security.PrincipalUser;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -24,38 +21,56 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
-    @Value("${spring.security.oauth2.client.registration.google.client-id}")
-    private String googleClientId;
+    public String register(RegisterRequest request) {
+        String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
+        String name = request.getName() == null ? "" : request.getName().trim();
+        String password = request.getPassword() == null ? "" : request.getPassword();
 
-    public String loginWithGoogle(String idTokenString) throws Exception {
-        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(Collections.singletonList(googleClientId))
+        if (email.isBlank() || password.isBlank()) {
+            throw new IllegalArgumentException("Email and password are required.");
+        }
+        if (password.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters.");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Email is already registered.");
+        }
+
+        User user = User.builder()
+                .name(name.isBlank() ? email : name)
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .roles(Set.of(Role.USER))
                 .build();
 
-        GoogleIdToken idToken = verifier.verify(idTokenString);
-        if (idToken != null) {
-            GoogleIdToken.Payload payload = idToken.getPayload();
-            String email = payload.getEmail();
-            
-            User user = userRepository.findByEmail(email)
-                    .orElseGet(() -> {
-                        User newUser = User.builder()
-                                .email(email)
-                                .name((String) payload.get("name"))
-                                .picture((String) payload.get("picture"))
-                                .roles(Set.of(Role.USER)) // Default role
-                                .build();
-                        return userRepository.save(newUser);
-                    });
+        userRepository.save(user);
+        return generateToken(user);
+    }
 
-            PrincipalUser principalUser = new PrincipalUser(user);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("roles", user.getRoles());
-            
-            return jwtService.generateToken(claims, principalUser);
-        } else {
-            throw new Exception("Invalid ID token.");
+    public String login(LoginRequest request) {
+        String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
+        String password = request.getPassword() == null ? "" : request.getPassword();
+
+        if (email.isBlank() || password.isBlank()) {
+            throw new IllegalArgumentException("Email and password are required.");
         }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password."));
+
+        if (user.getPassword() == null || !passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("Invalid email or password.");
+        }
+
+        return generateToken(user);
+    }
+
+    private String generateToken(User user) {
+        PrincipalUser principalUser = new PrincipalUser(user);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("roles", user.getRoles());
+        return jwtService.generateToken(claims, principalUser);
     }
 }

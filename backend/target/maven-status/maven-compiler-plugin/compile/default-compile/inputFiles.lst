@@ -25,6 +25,7 @@ D:\UpasamaGit\Dhiyana-PAF\backend\src\main\java\com\smartcampus\hub\service\tick
 D:\UpasamaGit\Dhiyana-PAF\backend\src\main\java\com\smartcampus\hub\dto\LoginRequest.java
 D:\UpasamaGit\Dhiyana-PAF\backend\src\main\java\com\smartcampus\hub\entity\booking\Booking.java
 D:\UpasamaGit\Dhiyana-PAF\backend\src\main\java\com\smartcampus\hub\enums\booking\BookingStatus.java
+D:\UpasamaGit\Dhiyana-PAF\backend\src\main\java\com\smartcampus\hub\dto\RegisterRequest.java
 D:\UpasamaGit\Dhiyana-PAF\backend\src\main\java\com\smartcampus\hub\security\JwtAuthenticationFilter.java
 D:\UpasamaGit\Dhiyana-PAF\backend\src\main\java\com\smartcampus\hub\service\booking\BookingService.java
 D:\UpasamaGit\Dhiyana-PAF\backend\src\main\java\com\smartcampus\hub\entity\catalogue\Resource.java
