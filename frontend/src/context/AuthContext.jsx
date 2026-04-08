@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext();
 
@@ -11,7 +12,22 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       localStorage.setItem('token', token);
-      fetchProfile(token);
+      
+      try {
+        const decoded = jwtDecode(token);
+        // Assuming the JWT contains 'sub' (email) and 'roles'
+        // If profile fetch fails, we still have the basic info from the token
+        setUser({
+          email: decoded.sub,
+          roles: decoded.roles || [],
+          ...decoded
+        });
+        
+        fetchProfile(token);
+      } catch (err) {
+        console.error('Failed to decode token:', err);
+        logout();
+      }
     } else {
       localStorage.removeItem('token');
       setUser(null);
@@ -24,10 +40,11 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get('http://localhost:8080/api/profile', {
         headers: { Authorization: `Bearer ${jwt}` }
       });
-      setUser(response.data);
+      // Merge profile info with role info from token
+      setUser(prev => ({ ...prev, ...response.data }));
     } catch (err) {
       console.error('Failed to fetch profile:', err);
-      logout();
+      // Don't logout immediately if token is valid but backend is down/denying profile
     } finally {
       setLoading(false);
     }
@@ -43,8 +60,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const hasRole = (role) => {
+    if (!user || !user.roles) return false;
+    return user.roles.includes(role) || user.roles.includes(`ROLE_${role}`);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

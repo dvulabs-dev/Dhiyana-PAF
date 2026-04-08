@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -67,10 +68,31 @@ public class AuthService {
         return generateToken(user);
     }
 
+    public String loginWithGoogle(String googleToken) {
+        // Placeholder: In a real app, use GoogleIdTokenVerifier
+        // For now, we assume the token is the email
+        String email = googleToken; 
+        
+        User user = userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User newUser = User.builder()
+                            .email(email)
+                            .name(email.split("@")[0])
+                            .roles(Set.of(Role.USER))
+                            .build();
+                    return userRepository.save(newUser);
+                });
+
+        return generateToken(user);
+    }
+
     private String generateToken(User user) {
         PrincipalUser principalUser = new PrincipalUser(user);
         Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", user.getRoles());
+        // Important: Prefix roles with ROLE_ for Spring Security
+        claims.put("roles", user.getRoles().stream()
+                .map(role -> "ROLE_" + role.name())
+                .collect(Collectors.toList()));
         return jwtService.generateToken(claims, principalUser);
     }
 }
