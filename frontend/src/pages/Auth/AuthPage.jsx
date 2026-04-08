@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { GoogleLogin } from '@react-oauth/google';
 import { Mail, Lock, User, BookOpen, Zap, Globe, ArrowRight } from 'lucide-react';
 
 const AuthPage = () => {
@@ -47,6 +48,26 @@ const AuthPage = () => {
             console.error('Login error:', err);
             const errorMessage = err?.response?.data?.error || 'Authentication failed';
             toast.error(errorMessage);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setSubmitting(true);
+        try {
+            const response = await axios.post('http://localhost:8080/auth/google', {
+                token: credentialResponse.credential
+            });
+
+            if (response.data.token) {
+                login(response.data.token);
+                toast.success('Login with Google successful!');
+                navigate('/dashboard');
+            }
+        } catch (err) {
+            console.error('Google login error:', err);
+            toast.error('Google authentication failed');
         } finally {
             setSubmitting(false);
         }
@@ -183,6 +204,23 @@ const AuthPage = () => {
                                         )}
                                     </button>
                                 </form>
+
+                                <div className="mt-6 flex items-center gap-4">
+                                    <div className="flex-1 h-px bg-slate-200"></div>
+                                    <span className="text-slate-400 text-sm font-medium">OR</span>
+                                    <div className="flex-1 h-px bg-slate-200"></div>
+                                </div>
+
+                                <div className="mt-6 flex justify-center">
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleSuccess}
+                                        onError={() => toast.error('Google Login Failed')}
+                                        useOneTap
+                                        theme="outline"
+                                        shape="pill"
+                                        width="100%"
+                                    />
+                                </div>
 
                                 {/* Toggle signup/login */}
                                 <div className="mt-6 text-center">

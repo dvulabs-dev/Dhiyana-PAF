@@ -42,4 +42,15 @@ public class AuthController {
             return ResponseEntity.status(500).body(Map.of("error", "Login failed."));
         }
     }
+
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> body) {
+        try {
+            String googleToken = body.get("token");
+            String token = authService.loginWithGoogle(googleToken);
+            return ResponseEntity.ok(Map.of("token", token));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Google login failed."));
+        }
+    }
 }

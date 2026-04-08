@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard, BookOpen, Calendar, Ticket, LogOut, User } from 'lucide-react';
 
+import NotificationPanel from '../modules/Notifications/NotificationPanel';
+
 const Navbar = () => {
     const { user, logout } = useAuth();
 
@@ -43,6 +45,8 @@ const Navbar = () => {
                     </div>
                     
                     <div className="flex items-center gap-4">
+                        <NotificationPanel />
+                        
                         <div className="hidden md:flex flex-col items-end mr-2 text-right">
                             <span className="text-sm font-bold text-gray-900">{user?.name}</span>
                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{user?.roles?.[0]}</span>
