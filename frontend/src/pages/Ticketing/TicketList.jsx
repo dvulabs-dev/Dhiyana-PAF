@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { getMyTickets } from '../../services/ticketingApi';
+import { getAssignedTickets, getAllTickets } from '../../services/ticketingApi';
 import { toast } from 'react-hot-toast';
 import { ClipboardList, Plus, Clock, AlertTriangle, CheckCircle2, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../components/Common/PageHeader';
+import { useAuth } from '../../context/AuthContext';
+import TicketDetailModal from '../../components/Ticketing/TicketDetailModal';
 
 const TicketList = () => {
+    const { hasRole } = useAuth();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedTicketId, setSelectedTicketId] = useState(null);
 
     const fetchTickets = async () => {
         try {
-            const data = await getMyTickets();
+            const data = hasRole('ADMIN') ? await getAllTickets() : await getAssignedTickets();
             setTickets(data);
         } catch (err) {
             toast.error('Failed to load tickets');
@@ -87,7 +91,7 @@ const TicketList = () => {
                                         <div className="flex items-center gap-8 text-[10px] text-slate-400 font-black uppercase tracking-[0.15em]">
                                             <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                                                 <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
-                                                {ticket.comments.length} Log Entries
+                                                {ticket.comments?.length || 0} Log Entries
                                             </div>
                                             <div>Reported: {new Date(ticket.createdAt).toLocaleDateString()}</div>
                                             {ticket.resourceId && (

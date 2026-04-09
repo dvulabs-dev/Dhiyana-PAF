@@ -1,12 +1,13 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, BookOpen, Calendar, Ticket, LogOut, User, Mail, MapPin } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Calendar, Ticket, LogOut, User, Mail, MapPin, Shield } from 'lucide-react';
 
 import NotificationPanel from '../modules/Notifications/NotificationPanel';
 
 const Navbar = () => {
     const { user, logout, displayName, displayPicture } = useAuth();
+    const brandHomePath = '/';
 
     const navItems = [
         ...(user.roles?.some(r => ['ADMIN', 'MANAGER', 'TECHNICIAN'].includes(r.replace('ROLE_', ''))) || false
@@ -15,6 +16,9 @@ const Navbar = () => {
         { to: '/catalogue', label: 'Catalogue', icon: BookOpen },
         { to: '/bookings', label: 'My Bookings', icon: Calendar },
         { to: '/tickets', label: 'Operations Hub', icon: Ticket },
+        ...(user.roles?.some(r => r.replace('ROLE_', '') === 'ADMIN') || false
+            ? [{ to: '/admin', label: 'Admin Control', icon: Shield }]
+            : []),
     ];
 
     const rawRole = user?.roles?.[0];
@@ -45,13 +49,13 @@ const Navbar = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-20">
                         <div className="flex items-center">
-                            <div className="flex-shrink-0 flex items-center gap-3">
-                                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xs border border-white/20 shadow-lg">SH</div>
+                            <Link to={brandHomePath} className="flex-shrink-0 flex items-center gap-3 group">
+                                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xs border border-white/20 shadow-lg group-hover:bg-blue-600 transition-colors">SH</div>
                                 <div className="flex flex-col border-l border-slate-200 pl-3">
-                                    <span className="text-xl font-black text-slate-900 tracking-tighter italic leading-none">SmartHub</span>
+                                    <span className="text-xl font-black text-slate-900 tracking-tighter italic leading-none group-hover:text-blue-600 transition-colors">SmartHub</span>
                                     <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mt-1">Ops Center</span>
                                 </div>
-                            </div>
+                            </Link>
                             <div className="hidden sm:ml-10 sm:flex sm:space-x-2">
                                 {navItems.map((item) => (
                                     <NavLink
