@@ -3,6 +3,7 @@ import { createResource, getResources } from '../../services/catalogueApi';
 import ResourceCard from '../../components/Catalogue/ResourceCard';
 import { Search, SlidersHorizontal, Loader, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import PageHeader from '../../components/Common/PageHeader';
 
 const RESOURCE_TYPES = [
     'LECTURE_HALL',
@@ -127,26 +128,21 @@ const ResourceList = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 py-10">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 py-10 font-sans">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <header className="mb-10 rounded-3xl p-8 bg-slate-900 text-white shadow-xl">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                        <div>
-                            <h1 className="text-4xl font-black tracking-tight mb-3">Facilities & Assets Catalogue</h1>
-                            <p className="text-slate-200 max-w-3xl">
-                                Maintain and discover lecture halls, labs, meeting rooms, and equipment with capacity, location,
-                                status, and availability windows.
-                            </p>
-                        </div>
+                <PageHeader 
+                    title="Facilities & Assets Catalogue"
+                    description="Real-time oversight of university infrastructure. Monitor availability, capacity, and operational status of lecture halls, labs, and strategic assets."
+                    actions={
                         <button
                             onClick={() => setShowCreate((prev) => !prev)}
-                            className="inline-flex items-center justify-center gap-2 bg-cyan-400 text-slate-900 px-5 py-3 rounded-2xl font-bold hover:bg-cyan-300 transition"
+                            className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3.5 rounded-2xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
                         >
                             <Plus className="w-5 h-5" />
-                            {showCreate ? 'Close Form' : 'Add Resource'}
+                            {showCreate ? 'Close Form' : 'Provision Resource'}
                         </button>
-                    </div>
-                </header>
+                    }
+                />
 
                 {showCreate && (
                     <form onSubmit={handleCreateResource} className="mb-8 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">

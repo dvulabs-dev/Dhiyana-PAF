@@ -6,18 +6,21 @@ import com.smartcampus.hub.entity.ticketing.Ticket;
 import com.smartcampus.hub.enums.ticketing.TicketStatus;
 import com.smartcampus.hub.repository.ticketing.TicketRepository;
 import com.smartcampus.hub.service.notifications.NotificationService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final NotificationService notificationService;
+
+    public TicketService(TicketRepository ticketRepository, NotificationService notificationService) {
+        this.ticketRepository = ticketRepository;
+        this.notificationService = notificationService;
+    }
 
     public Ticket createTicket(Ticket ticket) {
         ticket.setStatus(TicketStatus.OPEN);
@@ -80,7 +83,7 @@ public class TicketService {
         Ticket updated = ticketRepository.save(ticket);
         
         // Notify reporter if comment is from someone else
-        if (!comment.getAuthorEmail().equals(updated.getReporterEmail())) {
+        if (!comment.getUserEmail().equals(updated.getReporterEmail())) {
             notificationService.sendToUser(updated.getReporterEmail(), Notification.builder()
                     .title("New Comment on Ticket")
                     .message("There's a new update on your ticket #" + updated.getId())

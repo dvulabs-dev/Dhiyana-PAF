@@ -7,22 +7,32 @@ import com.smartcampus.hub.enums.Role;
 import com.smartcampus.hub.repository.UserRepository;
 import com.smartcampus.hub.security.JwtService;
 import com.smartcampus.hub.security.PrincipalUser;
-import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+
+    public AuthService(UserRepository userRepository, JwtService jwtService, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public String register(RegisterRequest request) {
         String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
@@ -69,21 +79,67 @@ public class AuthService {
     }
 
     public String loginWithGoogle(String googleToken) {
-        // Placeholder: In a real app, use GoogleIdTokenVerifier
-        // For now, we assume the token is the email
-        String email = googleToken; 
-        
+        Map<String, String> profile = extractGoogleProfile(googleToken);
+        String email = profile.get("email");
+        String name = profile.get("name");
+        String picture = profile.get("picture");
+
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     User newUser = User.builder()
                             .email(email)
-                            .name(email.split("@")[0])
+                            .name((name == null || name.isBlank()) ? email.split("@")[0] : name)
+                            .picture(picture)
                             .roles(Set.of(Role.USER))
                             .build();
                     return userRepository.save(newUser);
                 });
 
+        boolean changed = false;
+        if ((user.getName() == null || user.getName().isBlank()) && name != null && !name.isBlank()) {
+            user.setName(name);
+            changed = true;
+        }
+        if ((user.getPicture() == null || user.getPicture().isBlank()) && picture != null && !picture.isBlank()) {
+            user.setPicture(picture);
+            changed = true;
+        }
+        if (changed) {
+            user = userRepository.save(user);
+        }
+
         return generateToken(user);
+    }
+
+    private Map<String, String> extractGoogleProfile(String googleToken) {
+        try {
+            String[] parts = googleToken.split("\\.");
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("Invalid Google token format.");
+            }
+
+            byte[] decoded = Base64.getUrlDecoder().decode(parts[1]);
+            String payloadJson = new String(decoded, StandardCharsets.UTF_8);
+            JsonNode payload = OBJECT_MAPPER.readTree(payloadJson);
+
+            String email = payload.path("email").asText("").trim().toLowerCase();
+            String name = payload.path("name").asText("").trim();
+            String picture = payload.path("picture").asText("").trim();
+
+            if (email.isBlank()) {
+                throw new IllegalArgumentException("Google token did not contain email.");
+            }
+
+            Map<String, String> profile = new HashMap<>();
+            profile.put("email", email);
+            profile.put("name", name);
+            profile.put("picture", picture);
+            return profile;
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid Google token.");
+        }
     }
 
     private String generateToken(User user) {

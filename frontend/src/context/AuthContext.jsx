@@ -7,6 +7,10 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [profileOverride, setProfileOverride] = useState(() => {
+    const raw = localStorage.getItem('profileOverride');
+    return raw ? JSON.parse(raw) : null;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,6 +24,7 @@ export const AuthProvider = ({ children }) => {
         setUser({
           email: decoded.sub,
           roles: decoded.roles || [],
+          ...(profileOverride || {}),
           ...decoded
         });
         
@@ -30,10 +35,11 @@ export const AuthProvider = ({ children }) => {
       }
     } else {
       localStorage.removeItem('token');
+      localStorage.removeItem('profileOverride');
       setUser(null);
       setLoading(false);
     }
-  }, [token]);
+  }, [token, profileOverride]);
 
   const fetchProfile = async (jwt) => {
     try {
@@ -50,13 +56,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = (jwt) => {
+  const login = (jwt, profile = null) => {
     setLoading(true);
+    if (profile) {
+      setProfileOverride(profile);
+      localStorage.setItem('profileOverride', JSON.stringify(profile));
+    }
     setToken(jwt);
   };
 
   const logout = () => {
     setToken(null);
+    setProfileOverride(null);
+    localStorage.removeItem('profileOverride');
     setUser(null);
   };
 

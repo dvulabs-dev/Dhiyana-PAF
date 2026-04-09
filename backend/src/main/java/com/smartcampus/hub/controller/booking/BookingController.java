@@ -4,7 +4,6 @@ import com.smartcampus.hub.entity.booking.Booking;
 import com.smartcampus.hub.enums.booking.BookingStatus;
 import com.smartcampus.hub.security.PrincipalUser;
 import com.smartcampus.hub.service.booking.BookingService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,10 +14,13 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/bookings")
-@RequiredArgsConstructor
 public class BookingController {
 
     private final BookingService bookingService;
+
+    public BookingController(BookingService bookingService) {
+        this.bookingService = bookingService;
+    }
 
     @PostMapping
     public ResponseEntity<?> createBooking(

@@ -5,13 +5,20 @@ import App from './App.jsx'
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
-// You should replace this with your actual Google Client ID
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+if (!GOOGLE_CLIENT_ID) {
+  console.warn('Google OAuth is disabled: VITE_GOOGLE_CLIENT_ID is not set.');
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    {GOOGLE_CLIENT_ID ? (
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <App />
+      </GoogleOAuthProvider>
+    ) : (
       <App />
-    </GoogleOAuthProvider>
+    )}
   </StrictMode>,
 )
