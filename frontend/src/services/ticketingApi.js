@@ -47,3 +47,31 @@ export const updateTicketStatus = async (id, status) => {
     });
     return response.data;
 };
+
+export const assignTicket = async (id, technicianEmail) => {
+    const response = await axios.patch(`${API_URL}/${id}/assign`, null, {
+        params: { technicianEmail },
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+    });
+    return response.data;
+};
+
+export const getAllTickets = async () => {
+    const response = await axios.get(API_URL, {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+    });
+    return response.data;
+};
+
+export const getAssignedTickets = async () => {
+    const response = await axios.get(`${API_URL}/assigned`, {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+    });
+    return response.data;
+};

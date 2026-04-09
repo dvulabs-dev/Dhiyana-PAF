@@ -31,6 +31,12 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.createTicket(ticket));
     }
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    public ResponseEntity<List<Ticket>> getAllTickets() {
+        return ResponseEntity.ok(ticketService.getAllTickets());
+    }
+
     @GetMapping("/my")
     public ResponseEntity<List<Ticket>> getMyTickets(@AuthenticationPrincipal PrincipalUser principalUser) {
         return ResponseEntity.ok(ticketService.getMyTickets(principalUser.getUsername()));
@@ -48,7 +54,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Ticket> updateTicketStatus(
             @PathVariable String id,
             @RequestParam TicketStatus status

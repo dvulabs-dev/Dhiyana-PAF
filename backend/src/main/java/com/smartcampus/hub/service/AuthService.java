@@ -60,6 +60,44 @@ public class AuthService {
         return generateToken(user);
     }
 
+    public String createStaff(RegisterRequest request) {
+        String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
+        String name = request.getName() == null ? "" : request.getName().trim();
+        String password = request.getPassword() == null ? "" : request.getPassword();
+        String roleStr = request.getRole() == null ? "TECHNICIAN" : request.getRole().trim().toUpperCase();
+
+        if (email.isBlank() || password.isBlank()) {
+            throw new IllegalArgumentException("Email and password are required.");
+        }
+        if (password.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters.");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Email is already registered.");
+        }
+
+        Role assignRole;
+        try {
+            assignRole = Role.valueOf(roleStr);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid role. Use TECHNICIAN or MANAGER.");
+        }
+
+        if (assignRole != Role.TECHNICIAN && assignRole != Role.MANAGER) {
+            throw new IllegalArgumentException("Only staff roles TECHNICIAN or MANAGER are allowed.");
+        }
+
+        User user = User.builder()
+                .name(name.isBlank() ? email : name)
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .roles(Set.of(assignRole))
+                .build();
+
+        userRepository.save(user);
+        return "Account created successfully";
+    }
+
     public String login(LoginRequest request) {
         String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
         String password = request.getPassword() == null ? "" : request.getPassword();
