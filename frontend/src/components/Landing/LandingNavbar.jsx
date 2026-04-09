@@ -2,6 +2,7 @@ import React from 'react';
 import { Mail, MapPin, User, Search, Menu, LogOut, LayoutDashboard } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import NotificationPanel from '../../modules/Notifications/NotificationPanel';
 
 const LandingNavbar = () => {
     const { user, logout, displayName, displayPicture } = useAuth();
@@ -101,6 +102,13 @@ const LandingNavbar = () => {
                                 />
                                 <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
                             </div>
+
+                            {isLoggedIn && (
+                                <div className="flex items-center gap-1">
+                                    <NotificationPanel />
+                                    <div className="h-8 w-px bg-slate-100 mx-2"></div>
+                                </div>
+                            )}
 
                             {isLoggedIn ? (
                                 /* Logged-in user profile section */

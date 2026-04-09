@@ -18,6 +18,41 @@ import OperationalSupport from './pages/Common/OperationalSupport';
 import Documentation from './pages/Common/Documentation';
 import AuditLog from './pages/Common/AuditLog';
 import Legal from './pages/Common/Legal';
+import UserCatalogue from './pages/User/UserCatalogue';
+import UserBookings from './pages/User/UserBookings';
+import UserSupport from './pages/User/UserSupport';
+
+const RoleBasedRoute = ({ adminComponent: AdminComp, userComponent: UserComp, adminRoles }) => {
+    const { user, loading, hasRole } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+    
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    const showAdmin = adminRoles.some(role => hasRole(role));
+
+    if (showAdmin) {
+        return (
+            <MainLayout>
+                <AdminComp />
+            </MainLayout>
+        );
+    }
+
+    return (
+        <LandingLayout>
+            <UserComp />
+        </LandingLayout>
+    );
+};
 
 const Dashboard = () => {
     const { user, hasRole } = useAuth();
@@ -99,21 +134,9 @@ const App = () => {
                                 <MainLayout><Dashboard /></MainLayout>
                             </ProtectedRoute>
                         } />
-                        <Route path="/catalogue" element={
-                            <ProtectedRoute>
-                                <MainLayout><ResourceList /></MainLayout>
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/bookings" element={
-                            <ProtectedRoute>
-                                <MainLayout><MyBookings /></MainLayout>
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/tickets" element={
-                            <ProtectedRoute>
-                                <MainLayout><TicketList /></MainLayout>
-                            </ProtectedRoute>
-                        } />
+                        <Route path="/catalogue" element={<RoleBasedRoute adminComponent={ResourceList} userComponent={UserCatalogue} adminRoles={['ADMIN', 'MANAGER']} />} />
+                        <Route path="/bookings" element={<RoleBasedRoute adminComponent={MyBookings} userComponent={UserBookings} adminRoles={['ADMIN', 'MANAGER']} />} />
+                        <Route path="/tickets" element={<RoleBasedRoute adminComponent={TicketList} userComponent={UserSupport} adminRoles={['ADMIN', 'TECHNICIAN']} />} />
                         <Route path="/admin" element={
                             <RoleGuard allowedRoles={['ADMIN']}>
                                 <MainLayout><div>Admin Panel (Work in Progress)</div></MainLayout>
