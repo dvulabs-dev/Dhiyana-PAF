@@ -6,27 +6,19 @@ import { LayoutDashboard, BookOpen, Calendar, Ticket, LogOut, User, Mail, MapPin
 import NotificationPanel from '../modules/Notifications/NotificationPanel';
 
 const Navbar = () => {
-    const { user, logout } = useAuth();
-    
-    const isTokenLike = (value) => (
-        typeof value === 'string' &&
-        value.length > 40 &&
-        value.split('.').length === 3
-    );
-
-    const safeEmail = typeof user?.email === 'string' && !isTokenLike(user.email) ? user.email : '';
-    const safeName = typeof user?.name === 'string' && !isTokenLike(user.name) ? user.name : '';
-    const displayName = safeName || (safeEmail ? safeEmail.split('@')[0] : 'User');
-
-    const rawRole = user?.roles?.[0];
-    const displayRole = typeof rawRole === 'string' && rawRole.length <= 20 ? rawRole : 'USER';
+    const { user, logout, displayName, displayPicture } = useAuth();
 
     const navItems = [
-        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        ...(user.roles?.some(r => ['ADMIN', 'MANAGER', 'TECHNICIAN'].includes(r.replace('ROLE_', ''))) || false
+            ? [{ to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }]
+            : []),
         { to: '/catalogue', label: 'Catalogue', icon: BookOpen },
         { to: '/bookings', label: 'My Bookings', icon: Calendar },
-        { to: '/tickets', label: 'Support', icon: Ticket },
+        { to: '/tickets', label: 'Operations Hub', icon: Ticket },
     ];
+
+    const rawRole = user?.roles?.[0];
+    const displayRole = typeof rawRole === 'string' && rawRole.length <= 30 ? rawRole.replace('ROLE_', '') : 'MEMBER';
 
     return (
         <header className="w-full">
@@ -86,17 +78,22 @@ const Navbar = () => {
                             <div className="h-8 w-px bg-slate-100 mx-2 hidden md:block"></div>
 
                             <div className="flex items-center gap-3 pl-2 group cursor-pointer">
-                                <div className="hidden md:flex flex-col items-right text-right leading-tight">
+                                <div className="hidden md:flex flex-col text-right leading-tight">
                                     <span className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{displayName}</span>
                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{displayRole}</span>
                                 </div>
                                 <div className="relative">
                                     <div className="w-11 h-11 rounded-full border-2 border-slate-100 group-hover:border-blue-500 transition-all overflow-hidden shadow-sm">
-                                        {user?.picture ? (
-                                            <img src={user.picture} alt="Profile" className="w-full h-full object-cover" />
+                                        {displayPicture ? (
+                                            <img
+                                                src={displayPicture}
+                                                alt={displayName}
+                                                className="w-full h-full object-cover"
+                                                referrerPolicy="no-referrer"
+                                            />
                                         ) : (
-                                            <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                                                <User className="w-5 h-5 text-slate-400" />
+                                            <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white font-black text-lg">
+                                                {displayName?.[0]?.toUpperCase() || <User className="w-5 h-5" />}
                                             </div>
                                         )}
                                     </div>

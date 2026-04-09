@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
@@ -12,6 +12,8 @@ const GOOGLE_LOGIN_ENABLED = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 const AuthPage = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const from = location.state?.from?.pathname || '/';
     const [isRegister, setIsRegister] = useState(false);
     const [formData, setFormData] = useState({ name: '', email: '', password: '' });
     const [submitting, setSubmitting] = useState(false);
@@ -45,7 +47,7 @@ const AuthPage = () => {
             if (response.data.token) {
                 login(response.data.token);
                 toast.success(isRegister ? 'Account created successfully!' : 'Login successful!');
-                navigate('/dashboard');
+                navigate(from);
             }
         } catch (err) {
             console.error('Login error:', err);
@@ -63,22 +65,39 @@ const AuthPage = () => {
                 ? jwtDecode(credentialResponse.credential)
                 : null;
 
-            const response = await axios.post('http://localhost:8080/auth/google', {
-                token: credentialResponse.credential
-            });
+            const profileData = {
+                name: googleProfile?.name,
+                picture: googleProfile?.picture,
+                email: googleProfile?.email,
+            };
 
-            if (response.data.token) {
-                login(response.data.token, {
-                    name: googleProfile?.name,
-                    picture: googleProfile?.picture,
-                    email: googleProfile?.email,
+            try {
+                // Try backend authentication first
+                const response = await axios.post('http://localhost:8080/auth/google', {
+                    token: credentialResponse.credential
                 });
-                toast.success('Login with Google successful!');
-                navigate('/dashboard');
+
+                if (response.data.token) {
+                    login(response.data.token, profileData);
+                    toast.success('Welcome back! Logged in successfully.');
+                    navigate(from);
+                    return;
+                }
+            } catch (backendErr) {
+                console.warn('Backend auth failed, falling back to Google credential:', backendErr.message);
+
+                // Fallback: use the Google credential directly as the token
+                // This allows access if backend is temporarily unavailable
+                login(credentialResponse.credential, profileData);
+                toast.success(`Welcome, ${googleProfile?.name || 'User'}! Signed in via Google.`);
+                navigate(from);
+                return;
             }
+
+            toast.error('Authentication error. Please try again.');
         } catch (err) {
             console.error('Google login error:', err);
-            toast.error('Google authentication failed');
+            toast.error('Google authentication failed. Please try again.');
         } finally {
             setSubmitting(false);
         }

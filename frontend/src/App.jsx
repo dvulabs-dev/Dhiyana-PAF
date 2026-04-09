@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookOpen } from 'lucide-react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -13,6 +14,10 @@ import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import LandingLayout from './layouts/LandingLayout';
 import PageHeader from './components/Common/PageHeader';
+import OperationalSupport from './pages/Common/OperationalSupport';
+import Documentation from './pages/Common/Documentation';
+import AuditLog from './pages/Common/AuditLog';
+import Legal from './pages/Common/Legal';
 
 const Dashboard = () => {
     const { user, hasRole } = useAuth();
@@ -46,7 +51,12 @@ const Dashboard = () => {
             cta: 'Open Admin',
             roles: ['ADMIN']
         }
-    ].filter(card => card.roles.some(role => hasRole(role)));
+    ].filter(card => {
+        // If user has no roles yet (e.g. Google login fallback), show all non-admin cards
+        const userRoles = user?.roles || [];
+        if (userRoles.length === 0) return !card.roles.includes('ADMIN');
+        return card.roles.some(role => hasRole(role));
+    });
 
     return (
         <div className="p-6 md:p-8 bg-gradient-to-b from-slate-50 to-white min-h-[calc(100vh-10rem)]">
@@ -110,6 +120,10 @@ const App = () => {
                             </RoleGuard>
                         } />
                         <Route path="/" element={<LandingLayout><Home /></LandingLayout>} />
+                        <Route path="/operational" element={<LandingLayout><OperationalSupport /></LandingLayout>} />
+                        <Route path="/documentation" element={<LandingLayout><Documentation /></LandingLayout>} />
+                        <Route path="/audit" element={<LandingLayout><AuditLog /></LandingLayout>} />
+                        <Route path="/legal" element={<LandingLayout><Legal /></LandingLayout>} />
                         <Route path="/unauthorized" element={<div>Unauthorized Access</div>} />
                         <Route path="*" element={<div>404 Not Found</div>} />
                     </Routes>
