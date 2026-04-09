@@ -4,9 +4,17 @@ import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext();
 
+// Checks if a string looks like a JWT token (should NOT be treated as a name)
+const isTokenLike = (value) =>
+    typeof value === 'string' && value.length > 40 && value.split('.').length === 3;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [profileOverride, setProfileOverride] = useState(() => {
+    const raw = localStorage.getItem('profileOverride');
+    return raw ? JSON.parse(raw) : null;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,48 +23,64 @@ export const AuthProvider = ({ children }) => {
       
       try {
         const decoded = jwtDecode(token);
-        // Assuming the JWT contains 'sub' (email) and 'roles'
-        // If profile fetch fails, we still have the basic info from the token
+        
+        // Build base user state from decoded token + any stored profile override
         setUser({
-          email: decoded.sub,
-          roles: decoded.roles || [],
-          ...decoded
+          email: decoded.sub || decoded.email,
+          roles: decoded.roles || decoded.authorities || [],
+          ...(profileOverride || {}),
+          ...decoded,
         });
         
-        fetchProfile(token);
+        // Skip backend profile fetch for Google-issued tokens
+        const isGoogleToken = decoded.iss && decoded.iss.includes('google');
+        if (!isGoogleToken) {
+          fetchProfile(token);
+        } else {
+          setLoading(false);
+        }
       } catch (err) {
         console.error('Failed to decode token:', err);
-        logout();
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+        setLoading(false);
       }
     } else {
       localStorage.removeItem('token');
+      localStorage.removeItem('profileOverride');
       setUser(null);
       setLoading(false);
     }
-  }, [token]);
+  }, [token, profileOverride]);
 
   const fetchProfile = async (jwt) => {
     try {
       const response = await axios.get('http://localhost:8080/api/profile', {
         headers: { Authorization: `Bearer ${jwt}` }
       });
-      // Merge profile info with role info from token
       setUser(prev => ({ ...prev, ...response.data }));
     } catch (err) {
       console.error('Failed to fetch profile:', err);
-      // Don't logout immediately if token is valid but backend is down/denying profile
     } finally {
       setLoading(false);
     }
   };
 
-  const login = (jwt) => {
+  const login = (jwt, profile = null) => {
     setLoading(true);
+    if (profile) {
+      setProfileOverride(profile);
+      localStorage.setItem('profileOverride', JSON.stringify(profile));
+    }
     setToken(jwt);
   };
 
   const logout = () => {
     setToken(null);
+    setProfileOverride(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('profileOverride');
     setUser(null);
   };
 
@@ -65,8 +89,14 @@ export const AuthProvider = ({ children }) => {
     return user.roles.includes(role) || user.roles.includes(`ROLE_${role}`);
   };
 
+  // Safe resolved display values — always prefer profileOverride (Google data) over token claims
+  const rawName = profileOverride?.name || user?.name || user?.given_name || '';
+  const displayName = isTokenLike(rawName) ? (user?.email?.split('@')[0] || 'User') : (rawName || user?.email?.split('@')[0] || 'User');
+  const displayPicture = profileOverride?.picture || user?.picture || null;
+  const displayEmail = profileOverride?.email || user?.email || '';
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, hasRole }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, hasRole, displayName, displayPicture, displayEmail }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,21 +1,25 @@
 package com.smartcampus.hub.service.booking;
 
+import com.smartcampus.hub.entity.booking.Booking;
 import com.smartcampus.hub.entity.notifications.Notification;
 import com.smartcampus.hub.enums.booking.BookingStatus;
 import com.smartcampus.hub.repository.booking.BookingRepository;
 import com.smartcampus.hub.service.notifications.NotificationService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final NotificationService notificationService;
+
+    public BookingService(BookingRepository bookingRepository, NotificationService notificationService) {
+        this.bookingRepository = bookingRepository;
+        this.notificationService = notificationService;
+    }
 
     public Booking createBooking(Booking booking) {
         // Conflict Detection
@@ -35,7 +39,7 @@ public class BookingService {
         // Notify user about pending booking
         notificationService.sendToUser(saved.getUserEmail(), Notification.builder()
                 .title("Booking Submitted")
-                .message("Your booking for " + saved.getResourceName() + " is pending approval.")
+            .message("Your booking for resource " + saved.getResourceId() + " is pending approval.")
                 .type(Notification.NotificationType.BOOKING_APPROVED) // Mapping to broad category
                 .relatedId(saved.getId())
                 .build());
@@ -61,7 +65,7 @@ public class BookingService {
         // Notify user about status change
         notificationService.sendToUser(updated.getUserEmail(), Notification.builder()
                 .title("Booking Status Updated")
-                .message("Your booking for " + updated.getResourceName() + " has been " + status.name().toLowerCase())
+            .message("Your booking for resource " + updated.getResourceId() + " has been " + status.name().toLowerCase())
                 .type(status == BookingStatus.APPROVED ? Notification.NotificationType.BOOKING_APPROVED : Notification.NotificationType.BOOKING_REJECTED)
                 .relatedId(updated.getId())
                 .build());

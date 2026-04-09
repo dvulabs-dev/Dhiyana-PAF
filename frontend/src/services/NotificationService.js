@@ -1,23 +1,24 @@
 import SockJS from 'sockjs-client';
-import Stomp from 'stompjs';
+import { Client } from '@stomp/stompjs';
 
 class NotificationService {
     constructor() {
         this.stompClient = null;
         this.connected = false;
         this.subscriptions = [];
+        this.reconnectTimer = null;
     }
 
     connect(userId, onNotificationReceived) {
         if (this.connected) return;
 
-        const socket = new SockJS('http://localhost:8080/ws');
-        this.stompClient = Stomp.over(socket);
+        this.stompClient = new Client({
+            webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+            reconnectDelay: 0,
+            debug: () => {}
+        });
 
-        // Disable logging in production
-        this.stompClient.debug = null;
-
-        this.stompClient.connect({}, (frame) => {
+        this.stompClient.onConnect = () => {
             this.connected = true;
             console.log('Connected to WebSocket');
 
@@ -27,18 +28,41 @@ class NotificationService {
                 }
             });
             this.subscriptions.push(sub);
-        }, (error) => {
+        };
+
+        this.stompClient.onStompError = (error) => {
+            console.error('WebSocket STOMP Error:', error);
+        };
+
+        this.stompClient.onWebSocketError = (error) => {
             console.error('WebSocket Error:', error);
+        };
+
+        this.stompClient.onWebSocketClose = () => {
             this.connected = false;
-            // Attempt reconnect after 5 seconds
-            setTimeout(() => this.connect(userId, onNotificationReceived), 5000);
-        });
+            if (!this.reconnectTimer) {
+                this.reconnectTimer = setTimeout(() => {
+                    this.reconnectTimer = null;
+                    this.connect(userId, onNotificationReceived);
+                }, 5000);
+            }
+        };
+
+        this.stompClient.activate();
     }
 
     disconnect() {
-        if (this.stompClient !== null) {
-            this.stompClient.disconnect();
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
         }
+
+        if (this.stompClient !== null) {
+            this.subscriptions.forEach((sub) => sub.unsubscribe());
+            this.stompClient.deactivate();
+            this.stompClient = null;
+        }
+
         this.connected = false;
         this.subscriptions = [];
         console.log('Disconnected from WebSocket');

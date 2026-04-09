@@ -4,7 +4,6 @@ import com.smartcampus.hub.entity.catalogue.Resource;
 import com.smartcampus.hub.enums.catalogue.ResourceStatus;
 import com.smartcampus.hub.enums.catalogue.ResourceType;
 import com.smartcampus.hub.service.catalogue.ResourceService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,10 +13,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/catalogue")
-@RequiredArgsConstructor
 public class ResourceController {
 
     private final ResourceService resourceService;
+
+    public ResourceController(ResourceService resourceService) {
+        this.resourceService = resourceService;
+    }
 
     @GetMapping
     public ResponseEntity<Page<Resource>> getAllResources(

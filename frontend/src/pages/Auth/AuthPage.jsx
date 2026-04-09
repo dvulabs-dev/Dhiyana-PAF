@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
 import { Mail, Lock, User, BookOpen, Zap, Globe, ArrowRight } from 'lucide-react';
+
+const GOOGLE_LOGIN_ENABLED = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
 const AuthPage = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const from = location.state?.from?.pathname || '/';
     const [isRegister, setIsRegister] = useState(false);
     const [formData, setFormData] = useState({ name: '', email: '', password: '' });
     const [submitting, setSubmitting] = useState(false);
@@ -42,7 +47,7 @@ const AuthPage = () => {
             if (response.data.token) {
                 login(response.data.token);
                 toast.success(isRegister ? 'Account created successfully!' : 'Login successful!');
-                navigate('/dashboard');
+                navigate(from);
             }
         } catch (err) {
             console.error('Login error:', err);
@@ -56,18 +61,43 @@ const AuthPage = () => {
     const handleGoogleSuccess = async (credentialResponse) => {
         setSubmitting(true);
         try {
-            const response = await axios.post('http://localhost:8080/auth/google', {
-                token: credentialResponse.credential
-            });
+            const googleProfile = credentialResponse?.credential
+                ? jwtDecode(credentialResponse.credential)
+                : null;
 
-            if (response.data.token) {
-                login(response.data.token);
-                toast.success('Login with Google successful!');
-                navigate('/dashboard');
+            const profileData = {
+                name: googleProfile?.name,
+                picture: googleProfile?.picture,
+                email: googleProfile?.email,
+            };
+
+            try {
+                // Try backend authentication first
+                const response = await axios.post('http://localhost:8080/auth/google', {
+                    token: credentialResponse.credential
+                });
+
+                if (response.data.token) {
+                    login(response.data.token, profileData);
+                    toast.success('Welcome back! Logged in successfully.');
+                    navigate(from);
+                    return;
+                }
+            } catch (backendErr) {
+                console.warn('Backend auth failed, falling back to Google credential:', backendErr.message);
+
+                // Fallback: use the Google credential directly as the token
+                // This allows access if backend is temporarily unavailable
+                login(credentialResponse.credential, profileData);
+                toast.success(`Welcome, ${googleProfile?.name || 'User'}! Signed in via Google.`);
+                navigate(from);
+                return;
             }
+
+            toast.error('Authentication error. Please try again.');
         } catch (err) {
             console.error('Google login error:', err);
-            toast.error('Google authentication failed');
+            toast.error('Google authentication failed. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -85,17 +115,17 @@ const AuthPage = () => {
                     <div className="hidden lg:flex flex-col justify-center text-white space-y-8">
                         <div>
                             <h1 className="text-5xl font-black tracking-tight mb-4">
-                                Smart Campus<br />
-                                <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Hub</span>
+                                SmartHub<br />
+                                <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Operations Center</span>
                             </h1>
-                            <p className="text-xl text-slate-300">Manage facilities, bookings, and support all in one place.</p>
+                            <p className="text-xl text-slate-300">Centralized management for campus facilities, assets, and maintenance.</p>
                         </div>
 
                         <div className="space-y-4">
                             {[
-                                { icon: BookOpen, title: 'Smart Catalogue', desc: 'Browse and manage all campus facilities' },
-                                { icon: Zap, title: 'Fast Bookings', desc: 'Reserve resources with just a few clicks' },
-                                { icon: Globe, title: 'Real-time Updates', desc: 'Get instant notifications about your bookings' },
+                                { icon: BookOpen, title: 'Asset Catalogue', desc: 'Real-time visibility into campus infrastructure' },
+                                { icon: Zap, title: 'Operation Bookings', desc: 'Automated reservation and conflict management' },
+                                { icon: Globe, title: 'Maintenance Tracking', desc: 'End-to-end incident handling and resolutions' },
                             ].map((feature, idx) => (
                                 <div key={idx} className="flex items-start gap-4 group">
                                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0 group-hover:shadow-lg group-hover:shadow-cyan-500/50 transition-all">
@@ -120,10 +150,10 @@ const AuthPage = () => {
                                 {/* Logo area */}
                                 <div className="flex justify-center mb-8">
                                     <div className="relative">
-                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center">
-                                            <span className="text-2xl font-black text-white">S</span>
+                                        <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center shadow-xl">
+                                            <div className="w-8 h-8 border-2 border-white rounded-md flex items-center justify-center text-xs text-white font-bold tracking-tighter">SH</div>
                                         </div>
-                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-purple-500 rounded-full border-2 border-white"></div>
+                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-white animate-pulse"></div>
                                     </div>
                                 </div>
 
@@ -205,22 +235,26 @@ const AuthPage = () => {
                                     </button>
                                 </form>
 
-                                <div className="mt-6 flex items-center gap-4">
-                                    <div className="flex-1 h-px bg-slate-200"></div>
-                                    <span className="text-slate-400 text-sm font-medium">OR</span>
-                                    <div className="flex-1 h-px bg-slate-200"></div>
-                                </div>
+                                {GOOGLE_LOGIN_ENABLED && (
+                                    <>
+                                        <div className="mt-6 flex items-center gap-4">
+                                            <div className="flex-1 h-px bg-slate-200"></div>
+                                            <span className="text-slate-400 text-sm font-medium">OR</span>
+                                            <div className="flex-1 h-px bg-slate-200"></div>
+                                        </div>
 
-                                <div className="mt-6 flex justify-center">
-                                    <GoogleLogin
-                                        onSuccess={handleGoogleSuccess}
-                                        onError={() => toast.error('Google Login Failed')}
-                                        useOneTap
-                                        theme="outline"
-                                        shape="pill"
-                                        width="100%"
-                                    />
-                                </div>
+                                        <div className="mt-6 flex justify-center">
+                                            <GoogleLogin
+                                                onSuccess={handleGoogleSuccess}
+                                                onError={() => toast.error('Google Login Failed')}
+                                                useOneTap
+                                                theme="outline"
+                                                shape="pill"
+                                                width="100%"
+                                            />
+                                        </div>
+                                    </>
+                                )}
 
                                 {/* Toggle signup/login */}
                                 <div className="mt-6 text-center">

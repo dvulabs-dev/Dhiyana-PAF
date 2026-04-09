@@ -5,7 +5,6 @@ import com.smartcampus.hub.entity.ticketing.Ticket;
 import com.smartcampus.hub.enums.ticketing.TicketStatus;
 import com.smartcampus.hub.security.PrincipalUser;
 import com.smartcampus.hub.service.ticketing.TicketService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,10 +14,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tickets")
-@RequiredArgsConstructor
 public class TicketController {
 
     private final TicketService ticketService;
+
+    public TicketController(TicketService ticketService) {
+        this.ticketService = ticketService;
+    }
 
     @PostMapping
     public ResponseEntity<Ticket> createTicket(

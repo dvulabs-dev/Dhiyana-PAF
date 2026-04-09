@@ -2,18 +2,21 @@ package com.smartcampus.hub.service.notifications;
 
 import com.smartcampus.hub.entity.notifications.Notification;
 import com.smartcampus.hub.repository.notifications.NotificationRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
+
+    public NotificationService(NotificationRepository notificationRepository, SimpMessagingTemplate messagingTemplate) {
+        this.notificationRepository = notificationRepository;
+        this.messagingTemplate = messagingTemplate;
+    }
 
     public Notification sendToUser(String userId, Notification notification) {
         notification.setUserId(userId);
