@@ -3,6 +3,7 @@ import { BookOpen } from 'lucide-react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import ErrorBoundary from './components/Common/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
 import AuthPage from './pages/Auth/AuthPage';
 import ResourceList from './pages/Catalogue/ResourceList';
@@ -125,7 +126,8 @@ const Dashboard = () => {
 const App = () => {
     return (
         <AuthProvider>
-            <NotificationProvider>
+            <ErrorBoundary>
+                <NotificationProvider>
                 <Router>
                     <Toaster position="top-right" />
                     <Routes>
@@ -151,8 +153,9 @@ const App = () => {
                         <Route path="/unauthorized" element={<div>Unauthorized Access</div>} />
                         <Route path="*" element={<div>404 Not Found</div>} />
                     </Routes>
-                </Router>
-            </NotificationProvider>
+                                </Router>
+                </NotificationProvider>
+            </ErrorBoundary>
         </AuthProvider>
     );
 };

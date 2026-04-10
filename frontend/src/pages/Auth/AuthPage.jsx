@@ -66,9 +66,9 @@ const AuthPage = () => {
                 : null;
 
             const profileData = {
-                name: googleProfile?.name,
-                picture: googleProfile?.picture,
-                email: googleProfile?.email,
+                name: googleProfile?.name || '',
+                picture: googleProfile?.picture || '',
+                email: googleProfile?.email || '',
             };
 
             try {
