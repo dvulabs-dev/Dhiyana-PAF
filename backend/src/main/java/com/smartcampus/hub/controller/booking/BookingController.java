@@ -43,19 +43,32 @@ public class BookingController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<List<Booking>> getAllBookings() {
         return ResponseEntity.ok(bookingService.getAllBookings());
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<Booking> updateBookingStatus(
             @PathVariable String id,
             @RequestParam BookingStatus status,
             @RequestParam(required = false) String rejectionReason
     ) {
         return ResponseEntity.ok(bookingService.updateBookingStatus(id, status, rejectionReason));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateBooking(
+            @PathVariable String id,
+            @RequestBody Booking updatedBooking,
+            @AuthenticationPrincipal PrincipalUser principalUser
+    ) {
+        try {
+            return ResponseEntity.ok(bookingService.updateBooking(id, updatedBooking, principalUser.getUsername()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/{id}/cancel")

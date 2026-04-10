@@ -2,22 +2,25 @@ import React, { useState, useEffect, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { createBooking, getBookingSlots } from '../../services/bookingApi';
+import { createBooking, updateBooking, getBookingSlots } from '../../services/bookingApi';
 import { toast } from 'react-hot-toast';
 import { X, Clock, FileText, Users, Calendar as CalIcon, AlertTriangle, Info, CheckCircle2, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 
-const BookingModal = ({ resource, onClose, onSuccess }) => {
-    const [step, setStep] = useState(1); // 1 = pick date+slot, 2 = fill details
-    const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+const BookingModal = ({ resource, onClose, onSuccess, existingBooking }) => {
+    const isEdit = !!existingBooking;
+    const [step, setStep] = useState(isEdit ? 2 : 1); // If edit, go straight to details or keep at 1 to change time? Actually 2 is better if they just want to change purpose/attendees, but they might want to change time too. Let's start at 1 if they want to change time.
+    // Actually, if they are editing, they might want to see the current time.
+    const initialDate = isEdit ? format(new Date(existingBooking.startTime), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+    const [selectedDate, setSelectedDate] = useState(initialDate);
     const [busyEvents, setBusyEvents] = useState([]);
     const [calendarLoading, setCalendarLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        startTime: '',
-        endTime: '',
-        purpose: '',
-        expectedAttendees: resource.minAttendees || 1,
+        startTime: isEdit ? existingBooking.startTime : '',
+        endTime: isEdit ? existingBooking.endTime : '',
+        purpose: isEdit ? existingBooking.purpose : '',
+        expectedAttendees: isEdit ? existingBooking.expectedAttendees : (resource.minAttendees || 1),
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -104,18 +107,25 @@ const BookingModal = ({ resource, onClose, onSuccess }) => {
 
         setSubmitting(true);
         try {
-            await createBooking({
+            const payload = {
                 resourceId: resource.id,
                 startTime: formData.startTime,
                 endTime: formData.endTime,
                 purpose: formData.purpose,
                 expectedAttendees: att,
-            });
-            toast.success('Booking request submitted! Check "My Bookings" for status.');
+            };
+
+            if (isEdit) {
+                await updateBooking(existingBooking.id, payload);
+                toast.success('Reservation updated successfully');
+            } else {
+                await createBooking(payload);
+                toast.success('Booking request submitted! Check "My Bookings" for status.');
+            }
             onSuccess();
             onClose();
         } catch (err) {
-            toast.error(err.response?.data?.error || 'Booking failed.');
+            toast.error(err.response?.data?.error || (isEdit ? 'Update failed.' : 'Booking failed.'));
         } finally {
             setSubmitting(false);
         }
@@ -131,7 +141,9 @@ const BookingModal = ({ resource, onClose, onSuccess }) => {
                     <div className="relative z-10 flex justify-between items-start">
                         <div>
                             <div className="flex items-center gap-2 mb-4">
-                                <span className="px-3 py-1 bg-blue-600 text-[10px] font-black uppercase tracking-widest text-white rounded-full">Secure Reservation</span>
+                                <span className="px-3 py-1 bg-blue-600 text-[10px] font-black uppercase tracking-widest text-white rounded-full">
+                                    {isEdit ? 'Modify Reservation' : 'Secure Reservation'}
+                                </span>
                                 <span className="px-3 py-1 bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400 rounded-full">{resource.type}</span>
                             </div>
                             <h2 className="text-4xl font-black text-white italic tracking-tighter mb-2">{resource.name}</h2>
@@ -330,7 +342,7 @@ const BookingModal = ({ resource, onClose, onSuccess }) => {
                                     {submitting ? (
                                         <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
                                     ) : (
-                                        "Confirm & Submit Request"
+                                        isEdit ? "Update Reservation" : "Confirm & Submit Request"
                                     )}
                                 </button>
                             </form>

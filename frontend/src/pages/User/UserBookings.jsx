@@ -1,18 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { getMyBookings, cancelBooking } from '../../services/bookingApi';
+import { getResources } from '../../services/catalogueApi';
 import { toast } from 'react-hot-toast';
-import { Calendar, Clock, Trash2, Loader, Users, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Trash2, Loader, Users, AlertCircle, MapPin, Info, Pencil } from 'lucide-react';
+import BookingModal from '../../components/Booking/BookingModal';
 
 const UserBookings = () => {
     const [bookings, setBookings] = useState([]);
+    const [resourceMap, setResourceMap] = useState({});
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
+    const [editingBooking, setEditingBooking] = useState(null);
 
     const fetchBookings = async () => {
         setLoading(true);
         try {
-            const data = await getMyBookings();
-            setBookings(data);
+            const [bookingData, resourceData] = await Promise.all([
+                getMyBookings(),
+                getResources({ size: 100 })
+            ]);
+            
+            const rMap = {};
+            if (resourceData && resourceData.content) {
+                resourceData.content.forEach(r => {
+                    rMap[r.id] = r;
+                });
+            }
+            
+            setResourceMap(rMap);
+            setBookings(bookingData);
         } catch (err) {
             toast.error('Failed to load your reservations');
         } finally {
@@ -35,6 +51,10 @@ const UserBookings = () => {
         }
     };
 
+    const handleEdit = (booking) => {
+        setEditingBooking(booking);
+    };
+
     const getStatusBadge = (status) => {
         switch (status) {
             case 'APPROVED':
@@ -45,12 +65,14 @@ const UserBookings = () => {
                 return <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Cancelled</span>;
             case 'PENDING':
                 return <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Pending Review</span>;
+            case 'CLOSED':
+                return <span className="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Completed</span>;
             default:
                 return <span className="bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{status}</span>;
         }
     };
 
-    const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
+    const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'CLOSED'];
     const filtered = statusFilter ? bookings.filter(b => b.status === statusFilter) : bookings;
 
     return (
@@ -113,12 +135,25 @@ const UserBookings = () => {
                             <div className="relative z-10 flex flex-col md:flex-row md:items-start gap-5 justify-between">
                                 {/* Left: info */}
                                 <div className="flex-1">
-                                    <div className="flex flex-wrap items-center gap-3 mb-4">
-                                        {getStatusBadge(booking.status)}
-                                        <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                                            Resource ID: <span className="text-blue-600">{booking.resourceId}</span>
-                                        </h3>
-                                    </div>
+                                     <div className="flex flex-wrap items-center gap-3 mb-2">
+                                         {getStatusBadge(booking.status)}
+                                         {(booking.resourceType || resourceMap[booking.resourceId]?.type) && (
+                                             <span className="bg-slate-100 text-slate-500 text-[9px] font-black px-2 py-0.5 rounded border border-slate-200 uppercase tracking-widest">
+                                                 {booking.resourceType || resourceMap[booking.resourceId]?.type}
+                                             </span>
+                                         )}
+                                         <h3 className="text-3xl font-black text-slate-900 tracking-tighter italic leading-tight uppercase">
+                                             <span className="text-blue-600 block text-[9px] tracking-[0.3em] not-italic mb-1 font-black">Facility</span>
+                                             {booking.resourceName || resourceMap[booking.resourceId]?.name || 'Unknown Asset'}
+                                         </h3>
+                                     </div>
+
+                                     {(booking.resourceLocation || resourceMap[booking.resourceId]?.location) && (
+                                         <div className="flex items-center gap-2 text-blue-600 font-bold text-sm mb-4 bg-blue-50/30 w-fit px-4 py-1.5 rounded-xl border border-blue-100/50">
+                                             <MapPin className="w-4 h-4" />
+                                             {booking.resourceLocation || resourceMap[booking.resourceId]?.location}
+                                         </div>
+                                     )}
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm font-medium text-slate-600 mb-4">
                                         <div className="flex items-center gap-2">
@@ -134,18 +169,38 @@ const UserBookings = () => {
                                     </div>
 
                                     {booking.purpose && (
-                                        <div className="bg-slate-50 p-4 rounded-2xl text-sm border border-slate-100 flex items-start gap-3 mb-3">
-                                            <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 mt-0.5 flex-shrink-0">PURPOSE:</span>
-                                            <span className="font-medium italic text-slate-600">{booking.purpose}</span>
+                                        <div className="bg-slate-50 p-5 rounded-3xl text-sm border border-slate-100 flex flex-col gap-1.5 mb-4 relative overflow-hidden group/purpose">
+                                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover/purpose:opacity-10 transition-opacity text-slate-900">
+                                                <Info className="w-10 h-10" />
+                                            </div>
+                                            <span className="font-black text-[10px] uppercase tracking-[0.2em] text-blue-600">REASON FOR BOOKING</span>
+                                            <span className="font-bold text-slate-800 text-base">{booking.purpose}</span>
                                         </div>
                                     )}
 
-                                    {booking.expectedAttendees > 0 && (
-                                        <p className="flex items-center gap-1.5 text-xs text-slate-500 mt-2">
-                                            <Users className="w-3.5 h-3.5" />
-                                            Expected attendees: <strong className="text-slate-700">{booking.expectedAttendees}</strong>
-                                        </p>
-                                    )}
+                                    <div className="mt-4 flex flex-wrap gap-4 items-center border-t border-slate-50 pt-4">
+                                        <div className="flex items-center gap-2">
+                                            <Users className="w-3.5 h-3.5 text-slate-400" />
+                                            <div>
+                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Reservation</p>
+                                                <p className="text-xs font-black text-slate-900">{booking.expectedAttendees} Members</p>
+                                            </div>
+                                        </div>
+                                        <div className="w-px h-6 bg-slate-100"></div>
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Capacity</p>
+                                            <p className="text-xs font-bold text-slate-600">{booking.resourceCapacity || 'Standard'}</p>
+                                        </div>
+                                        {(booking.minAttendeesConstraint > 0) && (
+                                            <>
+                                                <div className="w-px h-6 bg-slate-100"></div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Constraint</p>
+                                                    <p className="text-xs font-bold text-slate-600">Min {booking.minAttendeesConstraint}</p>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
 
                                     {/* Show rejection reason clearly */}
                                     {booking.status === 'REJECTED' && booking.rejectionReason && (
@@ -158,6 +213,14 @@ const UserBookings = () => {
 
                                 {/* Right: actions */}
                                 <div className="flex-shrink-0 flex md:flex-col gap-2">
+                                    {booking.status === 'PENDING' && (
+                                        <button
+                                            onClick={() => handleEdit(booking)}
+                                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl font-bold transition-all text-sm"
+                                        >
+                                            <Pencil className="w-4 h-4" /> Update
+                                        </button>
+                                    )}
                                     {(booking.status === 'PENDING' || booking.status === 'APPROVED') && (
                                         <button
                                             onClick={() => handleCancel(booking.id)}
@@ -171,6 +234,18 @@ const UserBookings = () => {
                         </div>
                     ))}
                 </div>
+            )}
+
+            {editingBooking && (
+                <BookingModal
+                    resource={resourceMap[editingBooking.resourceId] || { id: editingBooking.resourceId, name: editingBooking.resourceName }}
+                    existingBooking={editingBooking}
+                    onClose={() => setEditingBooking(null)}
+                    onSuccess={() => {
+                        setEditingBooking(null);
+                        fetchBookings();
+                    }}
+                />
             )}
         </div>
     );
