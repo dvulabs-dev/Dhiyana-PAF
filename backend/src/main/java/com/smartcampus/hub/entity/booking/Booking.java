@@ -29,7 +29,9 @@ public class Booking {
     private LocalDateTime endTime;
     
     private String purpose;
+    private int expectedAttendees;
     private BookingStatus status;
+    private String rejectionReason;
     
     @CreatedDate
     private LocalDateTime createdAt;

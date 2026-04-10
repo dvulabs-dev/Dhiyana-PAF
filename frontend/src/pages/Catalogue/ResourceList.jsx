@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { createResource, getResources } from '../../services/catalogueApi';
+import { createResource, getResources, updateResource, deleteResource, CAMPUS_BUILDINGS, CAMPUS_FLOORS } from '../../services/catalogueApi';
 import ResourceCard from '../../components/Catalogue/ResourceCard';
-import { Search, SlidersHorizontal, Loader, Plus } from 'lucide-react';
+import { Search, SlidersHorizontal, Loader, Plus, Pencil, Building2, Layers, Clock, Users, Hash, X, Wand2, Image as ImageIcon, MapPin, Settings2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import PageHeader from '../../components/Common/PageHeader';
 
@@ -17,10 +17,30 @@ const RESOURCE_TYPES = [
 
 const RESOURCE_STATUSES = ['ACTIVE', 'OUT_OF_SERVICE', 'MAINTENANCE'];
 
+const BLANK_FORM = {
+    name: '',
+    description: '',
+    building: '',
+    floor: '',
+    roomCode: '',
+    location: '',
+    capacity: 1,
+    type: 'LECTURE_HALL',
+    status: 'ACTIVE',
+    availableFrom: '08:00',
+    availableTo: '18:00',
+    imageUrl: '',
+    maxBookingHours: 0,
+    minAttendees: 0,
+    maxAttendees: 0,
+    timeSlots: [],
+};
+
 const ResourceList = () => {
     const [resources, setResources] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showCreate, setShowCreate] = useState(false);
+    const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
     const [filters, setFilters] = useState({
         search: '',
@@ -33,17 +53,8 @@ const ResourceList = () => {
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [submitting, setSubmitting] = useState(false);
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        location: '',
-        capacity: 1,
-        type: 'LECTURE_HALL',
-        status: 'ACTIVE',
-        availableFrom: '08:00',
-        availableTo: '18:00',
-        imageUrl: '',
-    });
+    const [formData, setFormData] = useState(BLANK_FORM);
+    const [customSlot, setCustomSlot] = useState('');
 
     const fetchResources = async (targetPage = page) => {
         setLoading(true);
@@ -69,7 +80,7 @@ const ResourceList = () => {
 
     useEffect(() => {
         fetchResources(page);
-    }, [page]);
+    }, [page, filters]);
 
     const handleFilterChange = (field, value) => {
         setFilters((prev) => ({ ...prev, [field]: value }));
@@ -82,164 +93,326 @@ const ResourceList = () => {
     };
 
     const clearFilters = () => {
-        const cleared = { search: '', type: '', minCapacity: '', location: '', status: '' };
-        setFilters(cleared);
+        setFilters({ search: '', type: '', minCapacity: '', location: '', status: '' });
         setPage(0);
-        setTimeout(() => fetchResources(0), 0);
     };
 
     const handleFormChange = (field, value) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
-    const handleCreateResource = async (e) => {
+    const openCreateForm = () => {
+        setEditingId(null);
+        setFormData(BLANK_FORM);
+        setShowForm(true);
+    };
+
+    const openEditForm = (resource) => {
+        setEditingId(resource.id);
+        setFormData({
+            ...resource,
+            timeSlots: resource.timeSlots || [],
+        });
+        setShowForm(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const generateTwoHourSlots = () => {
+        const slots = ["08:30-10:30", "10:30-12:30", "13:30-15:30", "15:30-17:30"];
+        const updated = [...new Set([...formData.timeSlots, ...slots])];
+        handleFormChange('timeSlots', updated);
+        toast.success("Generated 2h slots within 8:30-17:30");
+    };
+
+    const addCustomSlot = () => {
+        if (!customSlot.match(/^\d{2}:\d{2}-\d{2}:\d{2}$/)) {
+            toast.error("Format: HH:mm-HH:mm");
+            return;
+        }
+        handleFormChange('timeSlots', [...formData.timeSlots, customSlot]);
+        setCustomSlot('');
+    };
+
+    const removeSlot = (index) => {
+        const updated = formData.timeSlots.filter((_, i) => i !== index);
+        handleFormChange('timeSlots', updated);
+    };
+
+    const handleSaveResource = async (e) => {
         e.preventDefault();
-        if (!formData.name || !formData.location || !formData.type) {
-            toast.error('Name, location and type are required');
+        if (!formData.name || !formData.type) {
+            toast.error('Name and Type are required');
             return;
         }
 
         setSubmitting(true);
         try {
-            await createResource({
-                ...formData,
+            let location = formData.location;
+            if (formData.building && formData.floor && formData.roomCode) {
+                location = `${formData.building} · ${formData.floor} · ${formData.roomCode}`;
+            }
+
+            const payload = { 
+                ...formData, 
                 capacity: Number(formData.capacity) || 1,
-            });
-            toast.success('Resource added to catalogue');
-            setShowCreate(false);
-            setFormData({
-                name: '',
-                description: '',
-                location: '',
-                capacity: 1,
-                type: 'LECTURE_HALL',
-                status: 'ACTIVE',
-                availableFrom: '08:00',
-                availableTo: '18:00',
-                imageUrl: '',
-            });
+                maxBookingHours: Number(formData.maxBookingHours) || 0,
+                minAttendees: Number(formData.minAttendees) || 0,
+                maxAttendees: Number(formData.maxAttendees) || 0,
+                location,
+                timeSlots: formData.timeSlots && formData.timeSlots.length > 0 ? formData.timeSlots : []
+            };
+
+            if (editingId) {
+                await updateResource(editingId, payload);
+                toast.success('Resource updated');
+            } else {
+                await createResource(payload);
+                toast.success('Resource provisioned');
+            }
+            setShowForm(false);
+            setEditingId(null);
+            setFormData(BLANK_FORM);
             setPage(0);
             fetchResources(0);
         } catch (err) {
-            toast.error('Could not create resource');
+            toast.error('Operation failed');
         } finally {
             setSubmitting(false);
         }
     };
 
+    const handleDelete = async (id) => {
+        if (!window.confirm('Delete this resource?')) return;
+        try {
+            await deleteResource(id);
+            toast.success('Deleted');
+            fetchResources(page);
+        } catch {
+            toast.error('Delete failed');
+        }
+    };
+
+    const handleStatusChange = async (id, newStatus) => {
+        try {
+            const resource = resources.find(r => r.id === id);
+            await updateResource(id, { ...resource, status: newStatus });
+            toast.success(`Resource is now ${newStatus}`);
+            fetchResources(page);
+        } catch {
+            toast.error('Status update failed');
+        }
+    };
+
+    const availableFloors = formData.building ? (CAMPUS_FLOORS[formData.building] || []) : [];
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 py-10 font-sans">
+        <div className="min-h-screen bg-slate-50 py-12 font-sans">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <PageHeader 
-                    title="Facilities & Assets Catalogue"
-                    description="Real-time oversight of university infrastructure. Monitor availability, capacity, and operational status of lecture halls, labs, and strategic assets."
+                    title="Campus Infrastructure Management"
+                    description="Configure university lecture halls, computer labs, and library resources with smart scheduling constraints."
                     actions={
-                        <button
-                            onClick={() => setShowCreate((prev) => !prev)}
-                            className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3.5 rounded-2xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
-                        >
-                            <Plus className="w-5 h-5" />
-                            {showCreate ? 'Close Form' : 'Provision Resource'}
+                        <button onClick={openCreateForm} className="bg-blue-600 text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-blue-500/20 flex items-center gap-3">
+                            <Plus className="w-5 h-5" /> Provision New Asset
                         </button>
                     }
                 />
 
-                {showCreate && (
-                    <form onSubmit={handleCreateResource} className="mb-8 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-                        <h2 className="text-xl font-bold text-slate-800 mb-5">Create Catalogue Resource</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <input className="px-4 py-3 rounded-xl border border-slate-300" placeholder="Resource name" value={formData.name} onChange={(e) => handleFormChange('name', e.target.value)} />
-                            <input className="px-4 py-3 rounded-xl border border-slate-300" placeholder="Location" value={formData.location} onChange={(e) => handleFormChange('location', e.target.value)} />
-                            <input type="number" min="1" className="px-4 py-3 rounded-xl border border-slate-300" placeholder="Capacity" value={formData.capacity} onChange={(e) => handleFormChange('capacity', e.target.value)} />
-                            <select className="px-4 py-3 rounded-xl border border-slate-300" value={formData.type} onChange={(e) => handleFormChange('type', e.target.value)}>
-                                {RESOURCE_TYPES.map((t) => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
-                            </select>
-                            <select className="px-4 py-3 rounded-xl border border-slate-300" value={formData.status} onChange={(e) => handleFormChange('status', e.target.value)}>
-                                {RESOURCE_STATUSES.map((s) => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
-                            </select>
-                            <input className="px-4 py-3 rounded-xl border border-slate-300" placeholder="Image URL (optional)" value={formData.imageUrl} onChange={(e) => handleFormChange('imageUrl', e.target.value)} />
-                            <input type="time" className="px-4 py-3 rounded-xl border border-slate-300" value={formData.availableFrom} onChange={(e) => handleFormChange('availableFrom', e.target.value)} />
-                            <input type="time" className="px-4 py-3 rounded-xl border border-slate-300" value={formData.availableTo} onChange={(e) => handleFormChange('availableTo', e.target.value)} />
-                            <input className="px-4 py-3 rounded-xl border border-slate-300 md:col-span-2 lg:col-span-3" placeholder="Description" value={formData.description} onChange={(e) => handleFormChange('description', e.target.value)} />
+                {showForm && (
+                    <form onSubmit={handleSaveResource} className="mb-12 bg-white border border-slate-200 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-full -mr-48 -mt-48 blur-3xl opacity-50"></div>
+                        
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-4 mb-10">
+                                <div className="p-4 bg-slate-900 rounded-3xl shadow-xl">
+                                    <Settings2 className="w-6 h-6 text-blue-500" />
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl font-black text-slate-900 italic tracking-tighter">
+                                        {editingId ? 'Configure Facility' : 'New Resource Provisioning'}
+                                    </h2>
+                                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Administrative Management Console</p>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                                {/* Section 1: Identity */}
+                                <div className="lg:col-span-2 space-y-8">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600 border-b border-blue-100 pb-2">1. Identity & Classification</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Asset Name</label>
+                                            <input className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 font-bold focus:bg-white focus:border-blue-600 outline-none transition-all" value={formData.name} onChange={(e) => handleFormChange('name', e.target.value)} required placeholder="e.g. F1303 Lab" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Resource Category</label>
+                                            <select className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 font-bold focus:bg-white focus:border-blue-600 outline-none transition-all" value={formData.type} onChange={(e) => handleFormChange('type', e.target.value)}>
+                                                {RESOURCE_TYPES.map((t) => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Facility Description</label>
+                                        <textarea rows="3" className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 font-bold focus:bg-white focus:border-blue-600 outline-none transition-all resize-none" value={formData.description} onChange={(e) => handleFormChange('description', e.target.value)} placeholder="Hardware specs, seating arrangement, etc." />
+                                    </div>
+                                </div>
+
+                                {/* Section 2: Visuals & Status */}
+                                <div className="space-y-8">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600 border-b border-blue-100 pb-2">2. Visibility & State</h3>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Current Status</label>
+                                        <select className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 font-bold focus:bg-white focus:border-blue-600 outline-none transition-all" value={formData.status} onChange={(e) => handleFormChange('status', e.target.value)}>
+                                            {RESOURCE_STATUSES.map((s) => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-1.5"><ImageIcon className="w-3 h-3" /> Cover Image URL</label>
+                                        <input className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 font-bold focus:bg-white focus:border-blue-600 outline-none transition-all" value={formData.imageUrl} onChange={(e) => handleFormChange('imageUrl', e.target.value)} placeholder="https://..." />
+                                    </div>
+                                </div>
+
+                                {/* Section 3: Physical Location */}
+                                <div className="lg:col-span-3 bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-slate-900/40 translate-y-2">
+                                    <div className="flex items-center gap-3 mb-8">
+                                        <MapPin className="w-5 h-5 text-blue-500" />
+                                        <h3 className="text-xs font-black uppercase tracking-widest">3. Geolocational Placement</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                                        <div className="md:col-span-1 space-y-2">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Building</label>
+                                            <select className="w-full px-5 py-4 rounded-2xl bg-slate-800 border-none text-white font-bold outline-none ring-1 ring-slate-700 focus:ring-blue-500 transition-all" value={formData.building} onChange={(e) => setFormData(p => ({...p, building: e.target.value, floor: ''}))}>
+                                                <option value="">Select Building</option>
+                                                {CAMPUS_BUILDINGS.map(b => <option key={b} value={b}>{b}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="md:col-span-1 space-y-2">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Floor / Level</label>
+                                            <select className="w-full px-5 py-4 rounded-2xl bg-slate-800 border-none text-white font-bold outline-none ring-1 ring-slate-700 focus:ring-blue-500 transition-all disabled:opacity-30" value={formData.floor} onChange={(e) => handleFormChange('floor', e.target.value)} disabled={!formData.building}>
+                                                <option value="">Select Floor</option>
+                                                {availableFloors.map(f => <option key={f} value={f}>{f}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="md:col-span-1 space-y-2">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Room Code</label>
+                                            <input className="w-full px-5 py-4 rounded-2xl bg-slate-800 border-none text-white font-bold outline-none ring-1 ring-slate-700 focus:ring-blue-500 transition-all uppercase placeholder:text-slate-600" value={formData.roomCode} onChange={(e) => handleFormChange('roomCode', e.target.value)} placeholder="e.g. F1303" />
+                                        </div>
+                                        <div className="md:col-span-1 space-y-1 group">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Reference Address</label>
+                                            <div className="px-5 py-4 rounded-2xl bg-slate-800/50 border border-slate-700 text-slate-400 font-bold text-xs line-clamp-1 italic group-hover:text-slate-200 transition-colors">
+                                                {formData.building || formData.location ? (formData.building ? `${formData.building} · ${formData.floor} · ${formData.roomCode}` : formData.location) : "No location defined"}
+                                            </div>
+                                            <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest mt-1 ml-1">Auto-generated for catalog</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Section 4: Operating Hours & Capacity */}
+                                <div className="lg:col-span-2 space-y-8 mt-4">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600 border-b border-blue-100 pb-2">4. Resource Utilization Limits</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Capacity</label>
+                                            <input type="number" className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 font-bold" value={formData.capacity} onChange={(e) => handleFormChange('capacity', e.target.value)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Max Booking (H)</label>
+                                            <input type="number" className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 font-bold" value={formData.maxBookingHours} onChange={(e) => handleFormChange('maxBookingHours', e.target.value)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Min Team</label>
+                                            <input type="number" className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 font-bold" value={formData.minAttendees} onChange={(e) => handleFormChange('minAttendees', e.target.value)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Max Team</label>
+                                            <input type="number" className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 font-bold" value={formData.maxAttendees} onChange={(e) => handleFormChange('maxAttendees', e.target.value)} />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><Clock className="w-3 h-3 text-blue-500" /> Operational From</label>
+                                            <input type="time" className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-white font-bold" value={formData.availableFrom} onChange={(e) => handleFormChange('availableFrom', e.target.value)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><Clock className="w-3 h-3 text-red-500" /> Operational To</label>
+                                            <input type="time" className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-white font-bold" value={formData.availableTo} onChange={(e) => handleFormChange('availableTo', e.target.value)} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Section 5: Admin Defined Slots */}
+                                <div className="space-y-8 mt-4">
+                                    <div className="flex justify-between items-center border-b border-blue-100 pb-2">
+                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600">5. Managed Time Slots</h3>
+                                        <button type="button" onClick={generateTwoHourSlots} className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.2em] bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-slate-900 transition-all">
+                                            <Wand2 className="w-3 h-3" /> Auto-Generate
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="p-6 bg-white border border-slate-200 rounded-[2rem] shadow-inner space-y-6">
+                                        <div className="flex flex-wrap gap-2 min-h-[100px] align-content-start">
+                                            {formData.timeSlots.length === 0 && (
+                                                <div className="w-full flex flex-col items-center justify-center py-6 text-slate-300">
+                                                    <Clock className="w-8 h-8 mb-2 opacity-20" />
+                                                    <p className="text-[9px] font-black uppercase tracking-widest">No Fixed Slots Defined</p>
+                                                </div>
+                                            )}
+                                            {formData.timeSlots.map((slot, idx) => (
+                                                <div key={idx} className="bg-slate-900 text-white pl-4 pr-2 py-2 rounded-xl flex items-center gap-3 group animate-in zoom-in-50 duration-300">
+                                                    <span className="text-xs font-black italic tracking-tighter">{slot}</span>
+                                                    <button type="button" onClick={() => removeSlot(idx)} className="p-1 hover:bg-white/20 rounded-lg transition-colors text-slate-400 hover:text-red-400">
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <input className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold outline-none placeholder:text-slate-300" placeholder="HH:mm-HH:mm" value={customSlot} onChange={e => setCustomSlot(e.target.value)} />
+                                            <button type="button" onClick={addCustomSlot} className="bg-slate-900 text-white px-4 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-colors">Add</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="mt-4 flex justify-end">
-                            <button disabled={submitting} className="bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold hover:bg-slate-700 transition disabled:opacity-60">
-                                {submitting ? 'Saving...' : 'Save Resource'}
+
+                        <div className="mt-12 flex justify-end gap-4 border-t border-slate-100 pt-10 relative z-10">
+                            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setFormData(BLANK_FORM); }} className="px-8 py-4 rounded-2xl text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-slate-900 transition-colors">
+                                Discard Definition
+                            </button>
+                            <button disabled={submitting} className="bg-blue-600 text-white px-12 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all shadow-2xl shadow-blue-600/20 disabled:opacity-50">
+                                {submitting ? 'Authenticating...' : (editingId ? 'Update Asset' : 'Commit New Facility')}
                             </button>
                         </div>
                     </form>
                 )}
 
-                <form onSubmit={handleSearch} className="mb-8 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-                    <div className="flex items-center gap-2 text-slate-700 font-semibold mb-4">
-                        <SlidersHorizontal className="w-5 h-5" />
-                        Search & Filter
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <div className="relative lg:col-span-2">
-                            <input
-                                type="text"
-                                placeholder="Search by name, description, location..."
-                                className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-cyan-400"
-                                value={filters.search}
-                                onChange={(e) => handleFilterChange('search', e.target.value)}
-                            />
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                {/* Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                    {loading ? (
+                        <div className="col-span-full py-32 text-center">
+                            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+                            <p className="font-black italic text-slate-400 uppercase tracking-widest text-xs">Synchronizing Multi-Campus Infrastructure</p>
                         </div>
-                        <select className="px-4 py-3 rounded-xl border border-slate-300" value={filters.type} onChange={(e) => handleFilterChange('type', e.target.value)}>
-                            <option value="">All Types</option>
-                            {RESOURCE_TYPES.map((t) => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
-                        </select>
-                        <input type="number" min="1" placeholder="Min Capacity" className="px-4 py-3 rounded-xl border border-slate-300" value={filters.minCapacity} onChange={(e) => handleFilterChange('minCapacity', e.target.value)} />
-                        <input placeholder="Location" className="px-4 py-3 rounded-xl border border-slate-300" value={filters.location} onChange={(e) => handleFilterChange('location', e.target.value)} />
-                        <select className="px-4 py-3 rounded-xl border border-slate-300" value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)}>
-                            <option value="">All Statuses</option>
-                            {RESOURCE_STATUSES.map((s) => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
-                        </select>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-3 justify-end">
-                        <button type="button" onClick={clearFilters} className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-600 font-semibold hover:bg-slate-50">Clear</button>
-                        <button type="submit" className="px-5 py-2.5 rounded-xl bg-cyan-500 text-slate-900 font-bold hover:bg-cyan-400">Apply Filters</button>
-                    </div>
-                </form>
+                    ) : resources.map(resource => (
+                        <ResourceCard
+                            key={resource.id}
+                            resource={resource}
+                            onEdit={openEditForm}
+                            onDelete={handleDelete}
+                            onStatusChange={handleStatusChange}
+                        />
+                    ))}
+                </div>
 
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-24">
-                        <Loader className="w-12 h-12 text-cyan-600 animate-spin mb-4" />
-                        <p className="text-slate-500 font-medium italic">Loading facilities and assets...</p>
+                {totalPages > 1 && (
+                    <div className="mt-16 flex justify-center gap-4">
+                        {[...Array(totalPages)].map((_, i) => (
+                            <button key={i} onClick={() => setPage(i)} className={`w-14 h-14 rounded-2xl font-black italic tracking-tighter transition-all ${page === i ? 'bg-slate-900 text-white shadow-2xl' : 'bg-white border border-slate-200 text-slate-400 hover:border-blue-600 hover:text-blue-600'}`}>
+                                {i + 1}
+                            </button>
+                        ))}
                     </div>
-                ) : (
-                    <>
-                        {resources.length === 0 ? (
-                            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-                                <p className="text-xl text-slate-500">No resources match your current filters.</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-                                {resources.map((resource) => (
-                                    <ResourceCard key={resource.id} resource={resource} />
-                                ))}
-                            </div>
-                        )}
-
-                        {totalPages > 1 && (
-                            <div className="mt-12 flex justify-center gap-2">
-                                {[...Array(totalPages)].map((_, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setPage(index)}
-                                        className={`w-10 h-10 rounded-lg font-bold transition-all ${
-                                            page === index
-                                                ? 'bg-slate-900 text-white shadow-md'
-                                                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                                        }`}
-                                    >
-                                        {index + 1}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </>
                 )}
             </div>
         </div>
