@@ -11,6 +11,8 @@ public interface TicketRepository extends MongoRepository<Ticket, String> {
     List<Ticket> findByReporterEmail(String email);
     
     List<Ticket> findByAssigneeEmail(String email);
+
+    List<Ticket> findByDepartmentIgnoreCase(String department);
     
     List<Ticket> findByResourceId(String resourceId);
     

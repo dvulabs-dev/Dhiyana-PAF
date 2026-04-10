@@ -7,6 +7,7 @@ public class AdminUserView {
     private String id;
     private String name;
     private String email;
+    private String department;
     private List<String> roles;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -14,10 +15,11 @@ public class AdminUserView {
     public AdminUserView() {
     }
 
-    public AdminUserView(String id, String name, String email, List<String> roles, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public AdminUserView(String id, String name, String email, String department, List<String> roles, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.email = email;
+        this.department = department;
         this.roles = roles;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -53,6 +55,14 @@ public class AdminUserView {
 
     public void setRoles(List<String> roles) {
         this.roles = roles;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
     }
 
     public LocalDateTime getCreatedAt() {

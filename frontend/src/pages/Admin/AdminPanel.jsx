@@ -2,13 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { UserPlus, Shield, Briefcase, Loader, Users, Search, Ticket, Wrench, Mail, Lock, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { createStaffAccount, getAdminOverview, getAllUsersForAdmin } from '../../services/authAdminApi';
+import { useAuth } from '../../context/AuthContext';
+import { DEPARTMENTS } from '../../constants/departments';
 
 const AdminPanel = () => {
+    const { user, hasRole } = useAuth();
+    const isManagerOnly = hasRole('MANAGER') && !hasRole('ADMIN');
+    const managerDepartment = (user?.department || '').toUpperCase();
+
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
-        role: 'TECHNICIAN'
+        role: 'TECHNICIAN',
+        department: ''
     });
     const [saving, setSaving] = useState(false);
     const [loadingData, setLoadingData] = useState(true);
@@ -42,6 +49,16 @@ const AdminPanel = () => {
         loadAdminData();
     }, []);
 
+    useEffect(() => {
+        if (isManagerOnly) {
+            setFormData((prev) => ({
+                ...prev,
+                role: 'TECHNICIAN',
+                department: managerDepartment
+            }));
+        }
+    }, [isManagerOnly, managerDepartment]);
+
     const filteredUsers = useMemo(() => {
         const needle = query.trim().toLowerCase();
         if (!needle) return users;
@@ -51,6 +68,7 @@ const AdminPanel = () => {
             return (
                 (user.name || '').toLowerCase().includes(needle) ||
                 (user.email || '').toLowerCase().includes(needle) ||
+                (user.department || '').toLowerCase().includes(needle) ||
                 roleText.includes(needle)
             );
         });
@@ -66,13 +84,20 @@ const AdminPanel = () => {
         setSaving(true);
 
         try {
-            await createStaffAccount(formData);
+            const payload = {
+                ...formData,
+                role: isManagerOnly ? 'TECHNICIAN' : formData.role,
+                department: (isManagerOnly ? managerDepartment : formData.department).trim().toUpperCase()
+            };
+
+            await createStaffAccount(payload);
             toast.success('Staff member account created.');
             setFormData({
                 name: '',
                 email: '',
                 password: '',
-                role: 'TECHNICIAN'
+                role: 'TECHNICIAN',
+                department: isManagerOnly ? managerDepartment : ''
             });
             loadAdminData();
         } catch (err) {
@@ -215,12 +240,36 @@ const AdminPanel = () => {
                                             name="role"
                                             value={formData.role}
                                             onChange={handleChange}
+                                            disabled={isManagerOnly}
                                             className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white shadow-sm font-black text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none tracking-widest cursor-pointer"
                                         >
                                             <option value="TECHNICIAN">TECHNICIAN</option>
                                             <option value="MANAGER">MANAGER</option>
                                         </select>
                                         {/* Custom dropdown arrow */}
+                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Department</label>
+                                    <div className="relative group">
+                                        <Briefcase className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-blue-500 shadow-sm transition-colors z-10" />
+                                        <select
+                                            name="department"
+                                            value={isManagerOnly ? managerDepartment : formData.department}
+                                            onChange={handleChange}
+                                            required
+                                            disabled={isManagerOnly}
+                                            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white shadow-sm font-black text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none tracking-widest cursor-pointer"
+                                        >
+                                            {!isManagerOnly && <option value="">SELECT DEPARTMENT</option>}
+                                            {DEPARTMENTS.map((department) => (
+                                                <option key={department} value={department}>{department}</option>
+                                            ))}
+                                        </select>
                                         <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
                                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
                                         </div>
@@ -328,6 +377,7 @@ const AdminPanel = () => {
                                                                     <Briefcase className="w-3 h-3 text-slate-300 group-hover:text-blue-400 transition-colors" />
                                                                 </div>
                                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-700/50">Campus Staff</span>
+                                                                {user.department && <span className="text-[10px] font-black uppercase tracking-widest text-blue-300 bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-700/50">{user.department}</span>}
                                                             </div>
                                                         </div>
 

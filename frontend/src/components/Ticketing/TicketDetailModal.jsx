@@ -10,6 +10,7 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
     const [loading, setLoading] = useState(true);
     const [commentText, setCommentText] = useState('');
     const isAdmin = hasRole('ADMIN') || hasRole('TECHNICIAN');
+    const isManager = hasRole('MANAGER') && !hasRole('ADMIN');
     const isSuperAdmin = hasRole('ADMIN');
     const [assignEmail, setAssignEmail] = useState('');
 
@@ -40,7 +41,8 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
             fetchTicket();
             if (onUpdate) onUpdate();
         } catch (err) {
-            toast.error('Failed to add comment');
+            const apiMessage = err?.response?.data?.message || err?.response?.data?.error;
+            toast.error(apiMessage || 'Failed to add comment');
         }
     };
 
@@ -64,7 +66,20 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
             fetchTicket();
             if (onUpdate) onUpdate();
         } catch (err) {
-            toast.error('Failed to update status');
+            const apiMessage = err?.response?.data?.message || err?.response?.data?.error;
+            toast.error(apiMessage || 'Failed to update status');
+        }
+    };
+
+    const handleManagerStatus = async (newStatus) => {
+        try {
+            await updateTicketStatus(ticketId, newStatus);
+            toast.success(`Ticket marked as ${newStatus}`);
+            fetchTicket();
+            if (onUpdate) onUpdate();
+        } catch (err) {
+            const apiMessage = err?.response?.data?.message || err?.response?.data?.error;
+            toast.error(apiMessage || 'Failed to update status');
         }
     };
 
@@ -102,6 +117,7 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
                                 <div className="space-y-3 text-sm">
                                     <div className="flex items-center gap-3"><User className="w-4 h-4 text-slate-400"/> <span className="font-bold">{ticket.studentName || ticket.reporterEmail}</span></div>
                                     {ticket.studentPhone && <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-slate-400"/> {ticket.studentPhone}</div>}
+                                    {ticket.department && <div className="flex items-center gap-3"><MapPin className="w-4 h-4 text-blue-500"/> Department: <span className="font-bold text-blue-700">{ticket.department}</span></div>}
                                     <div className="flex items-center gap-3"><MapPin className="w-4 h-4 text-rose-400"/> Issue: <span className="font-bold text-rose-600">{ticket.reason || 'General'}</span></div>
                                 </div>
                             </section>
@@ -118,9 +134,16 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
                                     <ul className="space-y-2">
                                         {ticket.documentUrls.map((url, i) => (
                                             <li key={i}>
-                                                <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline bg-blue-50 px-3 py-2 rounded-xl truncate">
-                                                    <Paperclip className="w-4 h-4 shrink-0" /> {url}
-                                                </a>
+                                                {url.startsWith('data:image/') ? (
+                                                    <a href={url} target="_blank" rel="noreferrer" className="block bg-blue-50 p-2 rounded-xl border border-blue-100">
+                                                        <img src={url} alt={`Attachment ${i + 1}`} className="max-h-48 w-auto rounded-lg object-contain" />
+                                                    </a>
+                                                ) : (
+                                                    <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline bg-blue-50 px-3 py-2 rounded-xl truncate">
+                                                        <Paperclip className="w-4 h-4 shrink-0" />
+                                                        {url.startsWith('data:') ? `Uploaded file ${i + 1}` : url}
+                                                    </a>
+                                                )}
                                             </li>
                                         ))}
                                     </ul>
@@ -128,7 +151,7 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
                             )}
 
                             {/* Admin Controls */}
-                            {isAdmin && (
+                            {(isAdmin || isManager) && (
                                 <section className="bg-slate-900 p-5 rounded-2xl shadow-sm text-white">
                                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Management Controls</h3>
 
@@ -141,6 +164,7 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
                                                     value={ticket.status}
                                                     onChange={handleStatusChange}
                                                 >
+                                                    <option value="PENDING">PENDING</option>
                                                     <option value="OPEN">OPEN</option>
                                                     <option value="IN_PROGRESS">IN PROGRESS</option>
                                                     <option value="RESOLVED">RESOLVED</option>
@@ -159,6 +183,28 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
                                                     />
                                                     <button onClick={handleAssign} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl text-sm font-bold transition-colors">Assign</button>
                                                 </div>
+                                            </div>
+                                        </div>
+                                    ) : isManager ? (
+                                        <div className="space-y-3">
+                                            <p className="text-xs text-slate-300 bg-slate-800/70 px-3 py-2 rounded-lg">
+                                                Managers can open pending tickets and close completed tickets.
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleManagerStatus('OPEN')}
+                                                    disabled={ticket.status !== 'PENDING'}
+                                                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:text-slate-400 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+                                                >
+                                                    Open Ticket
+                                                </button>
+                                                <button
+                                                    onClick={() => handleManagerStatus('CLOSED')}
+                                                    disabled={ticket.status === 'CLOSED'}
+                                                    className="bg-rose-600 hover:bg-rose-700 disabled:bg-slate-700 disabled:text-slate-400 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+                                                >
+                                                    Close Ticket
+                                                </button>
                                             </div>
                                         </div>
                                     ) : (
@@ -206,6 +252,11 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
                         
                         {/* Comment Input */}
                         <div className="p-4 border-t border-slate-100 bg-slate-50">
+                            {ticket.status === 'CLOSED' ? (
+                                <div className="text-sm font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-2xl px-4 py-3">
+                                    This ticket is closed. Messaging is disabled.
+                                </div>
+                            ) : (
                             <form onSubmit={handleAddComment} className="flex gap-2">
                                 <input
                                     type="text"
@@ -218,6 +269,7 @@ const TicketDetailModal = ({ ticketId, onClose, onUpdate }) => {
                                     <Send className="w-5 h-5" />
                                 </button>
                             </form>
+                            )}
                         </div>
                     </div>
                 </div>

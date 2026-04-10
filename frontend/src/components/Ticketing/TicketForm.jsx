@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createTicket } from '../../services/ticketingApi';
 import { toast } from 'react-hot-toast';
-import { Layout, PenTool, AlertOctagon, Camera, X, Paperclip } from 'lucide-react';
+import { X, Paperclip, Upload } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { DEPARTMENTS } from '../../constants/departments';
 
 const TICKET_REASONS = [
     'Hardware Malfunction',
@@ -21,11 +22,13 @@ const TicketForm = ({ resourceId, onClose, onSuccess }) => {
         resourceId: resourceId || '',
         studentName: displayName || user?.name || '',
         studentPhone: '',
+        department: '',
         reason: 'Hardware Malfunction',
         documentUrls: []
     });
     const [documentInput, setDocumentInput] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         if (displayName || user) {
@@ -44,6 +47,33 @@ const TicketForm = ({ resourceId, onClose, onSuccess }) => {
                 documentUrls: [...prev.documentUrls, documentInput.trim()]
             }));
             setDocumentInput('');
+        }
+    };
+
+    const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
+        reader.readAsDataURL(file);
+    });
+
+    const handleFileUpload = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+
+        setUploading(true);
+        try {
+            const encodedFiles = await Promise.all(files.map(readFileAsDataUrl));
+            setFormData((prev) => ({
+                ...prev,
+                documentUrls: [...prev.documentUrls, ...encodedFiles]
+            }));
+            toast.success(`${files.length} attachment${files.length > 1 ? 's' : ''} added`);
+        } catch (err) {
+            toast.error('Failed to add one or more attachments');
+        } finally {
+            setUploading(false);
+            e.target.value = '';
         }
     };
 
@@ -124,6 +154,21 @@ const TicketForm = ({ resourceId, onClose, onSuccess }) => {
                             </div>
 
                             <div>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Department</label>
+                                <select
+                                    required
+                                    className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 bg-slate-50 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all text-slate-900 font-medium cursor-pointer"
+                                    value={formData.department}
+                                    onChange={(e) => setFormData({...formData, department: e.target.value})}
+                                >
+                                    <option value="">Select department</option>
+                                    {DEPARTMENTS.map((department) => (
+                                        <option key={department} value={department}>{department}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
                                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Category / Reason</label>
                                 <select
                                     className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 bg-slate-50 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all text-slate-900 font-medium cursor-pointer"
@@ -190,8 +235,8 @@ const TicketForm = ({ resourceId, onClose, onSuccess }) => {
                                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Attachments / Links</label>
                                 <div className="flex gap-2 relative">
                                     <input
-                                        type="url"
-                                        placeholder="Add document or image URL (Drive, Imgur)"
+                                        type="text"
+                                        placeholder="Paste a document/image link"
                                         className="flex-1 px-5 py-3 rounded-xl border-2 border-slate-100 bg-slate-50 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all text-sm font-medium"
                                         value={documentInput}
                                         onChange={(e) => setDocumentInput(e.target.value)}
@@ -203,11 +248,27 @@ const TicketForm = ({ resourceId, onClose, onSuccess }) => {
                                         <Paperclip className="w-5 h-5 md:mr-1" /> <span className="hidden md:inline">Add</span>
                                     </button>
                                 </div>
+                                <div className="mt-3">
+                                    <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold text-xs cursor-pointer hover:bg-emerald-100 transition-colors">
+                                        <Upload className="w-4 h-4" />
+                                        {uploading ? 'Uploading...' : 'Upload File'}
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+                                            onChange={handleFileUpload}
+                                            className="hidden"
+                                            disabled={uploading}
+                                        />
+                                    </label>
+                                </div>
                                 {formData.documentUrls.length > 0 && (
                                     <ul className="mt-3 space-y-2 max-h-24 overflow-y-auto pr-2 custom-scrollbar">
                                         {formData.documentUrls.map((url, i) => (
                                             <li key={i} className="flex justify-between items-center bg-blue-50/50 border border-blue-100/50 px-4 py-2.5 rounded-xl text-sm shadow-sm group">
-                                                <a href={url} target="_blank" rel="noreferrer" className="text-blue-700 font-medium truncate mr-3 flex-1" title={url}>{url}</a>
+                                                <a href={url} target="_blank" rel="noreferrer" className="text-blue-700 font-medium truncate mr-3 flex-1" title={url}>
+                                                    {url.startsWith('data:') ? `Uploaded file ${i + 1}` : url}
+                                                </a>
                                                 <button type="button" onClick={() => handleRemoveDocument(i)} className="text-slate-400 hover:text-red-500 transition-colors p-1 bg-white rounded-lg opacity-80 group-hover:opacity-100 shadow-sm">
                                                     <X className="w-4 h-4" />
                                                 </button>

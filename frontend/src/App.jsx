@@ -79,7 +79,7 @@ const Dashboard = () => {
             description: 'Incident response, incident tracking, and resolution monitoring.',
             to: '/tickets',
             cta: 'Open Operations',
-            roles: ['USER', 'ADMIN', 'TECHNICIAN']
+            roles: ['USER', 'ADMIN', 'MANAGER', 'TECHNICIAN']
         },
         {
             title: 'Admin Operations',
@@ -139,9 +139,9 @@ const App = () => {
                         } />
                         <Route path="/catalogue" element={<RoleBasedRoute adminComponent={ResourceList} userComponent={UserCatalogue} adminRoles={['ADMIN', 'MANAGER']} />} />
                         <Route path="/bookings" element={<RoleBasedRoute adminComponent={MyBookings} userComponent={UserBookings} adminRoles={['ADMIN', 'MANAGER']} />} />
-                        <Route path="/tickets" element={<RoleBasedRoute adminComponent={TicketList} userComponent={UserSupport} adminRoles={['ADMIN', 'TECHNICIAN']} />} />
+                        <Route path="/tickets" element={<RoleBasedRoute adminComponent={TicketList} userComponent={UserSupport} adminRoles={['ADMIN', 'MANAGER', 'TECHNICIAN']} />} />
                         <Route path="/admin" element={
-                            <RoleGuard allowedRoles={['ADMIN']}>
+                            <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
                                 <MainLayout><AdminPanel /></MainLayout>
                             </RoleGuard>
                         } />

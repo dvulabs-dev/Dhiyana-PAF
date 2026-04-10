@@ -22,6 +22,15 @@ import java.util.stream.Collectors;
 @Service
 public class AuthService {
 
+    private static final Set<String> ALLOWED_DEPARTMENTS = Set.of(
+            "IT",
+            "MAINTENANCE",
+            "ELECTRICAL",
+            "FACILITIES",
+            "SECURITY",
+            "OPERATIONS"
+    );
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final UserRepository userRepository;
@@ -60,11 +69,12 @@ public class AuthService {
         return generateToken(user);
     }
 
-    public String createStaff(RegisterRequest request) {
+    public String createStaff(RegisterRequest request, PrincipalUser principalUser) {
         String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
         String name = request.getName() == null ? "" : request.getName().trim();
         String password = request.getPassword() == null ? "" : request.getPassword();
         String roleStr = request.getRole() == null ? "TECHNICIAN" : request.getRole().trim().toUpperCase();
+        String department = request.getDepartment() == null ? "" : request.getDepartment().trim().toUpperCase();
 
         if (email.isBlank() || password.isBlank()) {
             throw new IllegalArgumentException("Email and password are required.");
@@ -87,10 +97,40 @@ public class AuthService {
             throw new IllegalArgumentException("Only staff roles TECHNICIAN or MANAGER are allowed.");
         }
 
+        if (department.isBlank()) {
+            throw new IllegalArgumentException("Department is required for staff accounts.");
+        }
+        if (!ALLOWED_DEPARTMENTS.contains(department)) {
+            throw new IllegalArgumentException("Invalid department selected.");
+        }
+
+        if (principalUser != null && principalUser.getUser().getRoles() != null
+                && principalUser.getUser().getRoles().contains(Role.MANAGER)
+                && !principalUser.getUser().getRoles().contains(Role.ADMIN)) {
+            String managerDepartment = principalUser.getUser().getDepartment() == null
+                    ? ""
+                    : principalUser.getUser().getDepartment().trim().toUpperCase();
+
+            if (managerDepartment.isBlank()) {
+                throw new IllegalArgumentException("Manager account does not have a department assigned.");
+            }
+            if (!managerDepartment.equals(department)) {
+                throw new IllegalArgumentException("Managers can only create staff in their own department.");
+            }
+            if (assignRole == Role.MANAGER) {
+                throw new IllegalArgumentException("Managers can only create technician accounts.");
+            }
+        }
+
+        if (assignRole == Role.MANAGER && userRepository.existsByRolesContainingAndDepartmentIgnoreCase(Role.MANAGER, department)) {
+            throw new IllegalArgumentException("Only one manager is allowed per department.");
+        }
+
         User user = User.builder()
                 .name(name.isBlank() ? email : name)
                 .email(email)
                 .password(passwordEncoder.encode(password))
+                .department(department)
                 .roles(Set.of(assignRole))
                 .build();
 
@@ -187,6 +227,9 @@ public class AuthService {
         claims.put("roles", user.getRoles().stream()
                 .map(role -> "ROLE_" + role.name())
                 .collect(Collectors.toList()));
+        if (user.getDepartment() != null && !user.getDepartment().isBlank()) {
+            claims.put("department", user.getDepartment());
+        }
         return jwtService.generateToken(claims, principalUser);
     }
 }
