@@ -17,4 +17,9 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
     @Query("{ 'resourceId': ?0, 'status': 'APPROVED', $or: [ " +
            "{ 'startTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } } ] }")
     List<Booking> findOverlappingBookings(String resourceId, LocalDateTime start, LocalDateTime end);
+
+    /** All APPROVED or PENDING bookings for a resource that overlap the given day window */
+    @Query("{ 'resourceId': ?0, 'status': { $in: ['APPROVED','PENDING'] }, " +
+           "'startTime': { $lt: ?2 }, 'endTime': { $gt: ?1 } }")
+    List<Booking> findByResourceIdAndTimeRange(String resourceId, LocalDateTime start, LocalDateTime end);
 }

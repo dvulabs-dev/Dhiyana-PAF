@@ -1,19 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { getMyBookings, cancelBooking } from '../../services/bookingApi';
+import { getMyBookings, getAllBookings, cancelBooking, updateBookingStatus } from '../../services/bookingApi';
+import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
-import { Calendar, Clock, Trash2, Info } from 'lucide-react';
+import { Calendar, Clock, Trash2, Info, CheckCircle, XCircle, Loader, Users, Filter } from 'lucide-react';
 import PageHeader from '../../components/Common/PageHeader';
 
 const MyBookings = () => {
+    const { hasRole } = useAuth();
+    const isAdmin = hasRole('ADMIN') || hasRole('MANAGER');
+
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState('');
+
+    // Reject modal state
+    const [rejectTarget, setRejectTarget] = useState(null);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [actionLoading, setActionLoading] = useState(false);
 
     const fetchBookings = async () => {
+        setLoading(true);
         try {
-            const data = await getMyBookings();
+            const data = isAdmin ? await getAllBookings() : await getMyBookings();
             setBookings(data);
         } catch (err) {
-            toast.error('Failed to load your bookings');
+            toast.error('Failed to load bookings');
         } finally {
             setLoading(false);
         }
@@ -24,14 +35,49 @@ const MyBookings = () => {
     }, []);
 
     const handleCancel = async (id) => {
-        if (window.confirm('Are you sure you want to cancel this booking?')) {
-            try {
-                await cancelBooking(id);
-                toast.success('Booking cancelled');
-                fetchBookings();
-            } catch (err) {
-                toast.error('Failed to cancel booking');
-            }
+        if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+        try {
+            await cancelBooking(id);
+            toast.success('Booking cancelled');
+            fetchBookings();
+        } catch (err) {
+            toast.error('Failed to cancel booking');
+        }
+    };
+
+    const handleApprove = async (id) => {
+        setActionLoading(true);
+        try {
+            await updateBookingStatus(id, 'APPROVED');
+            toast.success('Booking approved');
+            fetchBookings();
+        } catch (err) {
+            toast.error('Failed to approve booking');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const openRejectModal = (booking) => {
+        setRejectTarget(booking);
+        setRejectionReason('');
+    };
+
+    const handleRejectConfirm = async () => {
+        if (!rejectionReason.trim()) {
+            toast.error('Please provide a rejection reason.');
+            return;
+        }
+        setActionLoading(true);
+        try {
+            await updateBookingStatus(rejectTarget.id, 'REJECTED', rejectionReason);
+            toast.success('Booking rejected');
+            setRejectTarget(null);
+            fetchBookings();
+        } catch (err) {
+            toast.error('Failed to reject booking');
+        } finally {
+            setActionLoading(false);
         }
     };
 
@@ -45,78 +91,181 @@ const MyBookings = () => {
         }
     };
 
-    const formatDateTime = (dateTimeStr) => {
-        return new Date(dateTimeStr).toLocaleString([], { 
-            dateStyle: 'medium', 
-            timeStyle: 'short' 
-        });
-    };
+    const formatDateTime = (dateTimeStr) =>
+        new Date(dateTimeStr).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+
+    const filtered = statusFilter ? bookings.filter(b => b.status === statusFilter) : bookings;
+
+    const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans">
-            <PageHeader 
-                title="Operation Reservations"
-                description="Manage and track your active facility and equipment bookings. Maintain full visibility into approved, pending, and completed schedules."
+            <PageHeader
+                title={isAdmin ? 'All Booking Requests' : 'Operation Reservations'}
+                description={
+                    isAdmin
+                        ? 'Review, approve, or reject facility booking requests from all users.'
+                        : 'Manage and track your active facility and equipment bookings.'
+                }
                 actions={
                     <div className="bg-blue-600/10 px-4 py-2 rounded-xl border border-blue-600/20 flex items-center text-blue-400 text-[10px] font-black uppercase tracking-widest leading-none">
                         <Info className="w-4 h-4 mr-2" />
-                        Audit Active
+                        {isAdmin ? 'Admin View' : 'My Bookings'}
                     </div>
                 }
             />
 
+            {/* Status Filter */}
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+                <Filter className="w-4 h-4 text-slate-400" />
+                <button
+                    onClick={() => setStatusFilter('')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${!statusFilter ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                >
+                    All
+                </button>
+                {STATUSES.map(s => (
+                    <button
+                        key={s}
+                        onClick={() => setStatusFilter(s)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${statusFilter === s ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                    >
+                        {s}
+                    </button>
+                ))}
+            </div>
+
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 italic text-slate-400">
                     <div className="w-8 h-8 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-                    Loading schedule...
+                    Loading bookings...
+                </div>
+            ) : filtered.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-slate-100">
+                    <p className="text-slate-500 font-medium">No bookings found{statusFilter ? ` with status "${statusFilter}"` : ''}.</p>
                 </div>
             ) : (
-                <>
-                    {bookings.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-slate-100">
-                            <p className="text-slate-500 font-medium">You haven't made any operational bookings yet.</p>
-                        </div>
-                    ) : (
-                        <div className="grid gap-6">
-                            {bookings.map((booking) => (
-                                <div key={booking.id} className="group bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-xl hover:border-blue-100 transition-all duration-300">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-4 mb-4">
-                                            <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(booking.status)} shadow-sm`}>
-                                                {booking.status}
-                                            </span>
-                                            <h3 className="text-xl font-black text-slate-900 tracking-tight italic">Resource: {booking.resourceId}</h3>
+                <div className="grid gap-6">
+                    {filtered.map((booking) => (
+                        <div key={booking.id} className="group bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:border-blue-100 transition-all duration-300">
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                                <div className="flex-1">
+                                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                                        <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(booking.status)} shadow-sm`}>
+                                            {booking.status}
+                                        </span>
+                                        <h3 className="text-xl font-black text-slate-900 tracking-tight italic">
+                                            Resource: {booking.resourceId}
+                                        </h3>
+                                    </div>
+
+                                    {isAdmin && (
+                                        <p className="text-xs text-slate-500 mb-3 flex items-center gap-1">
+                                            <Users className="w-3.5 h-3.5" />
+                                            Requested by: <span className="font-bold text-slate-700 ml-1">{booking.userEmail}</span>
+                                        </p>
+                                    )}
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-3 text-sm font-medium text-slate-500">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="w-4 h-4 text-blue-500" />
+                                            {formatDateTime(booking.startTime)}
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-3 text-sm font-medium text-slate-500">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-blue-500" />
-                                                {formatDateTime(booking.startTime)}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Clock className="w-4 h-4 text-blue-500" />
-                                                Ends: {formatDateTime(booking.endTime)}
-                                            </div>
-                                        </div>
-                                        <div className="mt-5 text-slate-600 bg-slate-50 p-4 rounded-2xl text-sm border border-slate-100 flex items-start gap-3">
-                                            <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 mt-0.5">PURPOSE:</span>
-                                            <span className="font-medium italic">{booking.purpose}</span>
+                                        <div className="flex items-center gap-2">
+                                            <Clock className="w-4 h-4 text-blue-500" />
+                                            Ends: {formatDateTime(booking.endTime)}
                                         </div>
                                     </div>
 
-                                    {booking.status === 'PENDING' && (
+                                    <div className="mt-4 text-slate-600 bg-slate-50 p-4 rounded-2xl text-sm border border-slate-100 flex items-start gap-3">
+                                        <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 mt-0.5">PURPOSE:</span>
+                                        <span className="font-medium italic">{booking.purpose}</span>
+                                    </div>
+
+                                    {booking.expectedAttendees > 0 && (
+                                        <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                                            <Users className="w-3.5 h-3.5" /> Expected Attendees: <strong className="ml-1 text-slate-700">{booking.expectedAttendees}</strong>
+                                        </p>
+                                    )}
+
+                                    {booking.rejectionReason && (
+                                        <div className="mt-3 bg-red-50 border border-red-100 rounded-2xl p-3 text-sm text-red-700">
+                                            <span className="font-bold">Rejection reason: </span>{booking.rejectionReason}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-row md:flex-col gap-2 flex-shrink-0">
+                                    {/* Admin: Approve / Reject pending bookings */}
+                                    {isAdmin && booking.status === 'PENDING' && (
+                                        <>
+                                            <button
+                                                disabled={actionLoading}
+                                                onClick={() => handleApprove(booking.id)}
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-50 text-green-700 hover:bg-green-600 hover:text-white rounded-2xl transition-all font-black text-xs uppercase tracking-widest border border-green-200 shadow-sm disabled:opacity-50"
+                                            >
+                                                <CheckCircle className="w-4 h-4" /> Approve
+                                            </button>
+                                            <button
+                                                disabled={actionLoading}
+                                                onClick={() => openRejectModal(booking)}
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-700 hover:bg-red-600 hover:text-white rounded-2xl transition-all font-black text-xs uppercase tracking-widest border border-red-200 shadow-sm disabled:opacity-50"
+                                            >
+                                                <XCircle className="w-4 h-4" /> Reject
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {/* User: Cancel pending or approved bookings */}
+                                    {!isAdmin && (booking.status === 'PENDING' || booking.status === 'APPROVED') && (
                                         <button
                                             onClick={() => handleCancel(booking.id)}
                                             className="px-6 py-3 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-2xl transition-all flex items-center justify-center font-black text-xs uppercase tracking-widest border border-red-100 shadow-sm"
                                         >
                                             <Trash2 className="w-4 h-4 mr-2" />
-                                            Abort Request
+                                            Cancel
                                         </button>
                                     )}
                                 </div>
-                            ))}
+                            </div>
                         </div>
-                    )}
-                </>
+                    ))}
+                </div>
+            )}
+
+            {/* Reject Reason Modal */}
+            {rejectTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6">
+                        <h2 className="text-xl font-black text-slate-900 mb-2">Reject Booking</h2>
+                        <p className="text-sm text-slate-500 mb-5">
+                            Please provide a reason for rejecting the booking for resource <strong>{rejectTarget.resourceId}</strong> by <strong>{rejectTarget.userEmail}</strong>.
+                        </p>
+                        <textarea
+                            rows="4"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-red-400 focus:ring-red-200 text-sm mb-4"
+                            placeholder="e.g., Conflicting event, Resource under maintenance..."
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                        />
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setRejectTarget(null)}
+                                className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 font-bold hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={actionLoading}
+                                onClick={handleRejectConfirm}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition disabled:opacity-50"
+                            >
+                                {actionLoading ? <Loader className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                                Confirm Rejection
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

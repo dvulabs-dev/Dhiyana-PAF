@@ -25,10 +25,21 @@ public class Resource {
     
     private String name;
     private String description;
-    private String location;
+    
+    // Structured location fields
+    private String building;      // "Main Building", "New Building/F Block", "Library"
+    private String floor;         // "3rd floor", "13th floor", etc.
+    private String roomCode;      // New room code e.g. "F1303", "A601"
+    private String location;      // Legacy/override free-text location
+    
     private int capacity;
     private String availableFrom;
     private String availableTo;
+    
+    // Booking constraints
+    private int maxBookingHours;  // 0 = unlimited, >0 = max hours per booking
+    private int minAttendees;     // 0 = no min
+    private int maxAttendees;     // 0 = no max (use capacity)
     
     private ResourceType type;
     private ResourceStatus status;

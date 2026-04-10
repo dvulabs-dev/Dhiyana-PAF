@@ -46,3 +46,12 @@ export const deleteResource = async (id) => {
         }
     });
 };
+
+// Building/floor metadata (mirrors the seeded data structure)
+export const CAMPUS_BUILDINGS = ['Main Building', 'F Block', 'Library'];
+
+export const CAMPUS_FLOORS = {
+    'Main Building': ['3rd Floor', '4th Floor', '5th Floor', '6th Floor'],
+    'F Block':       ['5th Floor', '13th Floor', '14th Floor'],
+    'Library':       ['Ground Floor'],
+};

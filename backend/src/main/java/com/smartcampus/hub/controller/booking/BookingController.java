@@ -4,11 +4,13 @@ import com.smartcampus.hub.entity.booking.Booking;
 import com.smartcampus.hub.enums.booking.BookingStatus;
 import com.smartcampus.hub.security.PrincipalUser;
 import com.smartcampus.hub.service.booking.BookingService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -50,9 +52,10 @@ public class BookingController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Booking> updateBookingStatus(
             @PathVariable String id,
-            @RequestParam BookingStatus status
+            @RequestParam BookingStatus status,
+            @RequestParam(required = false) String rejectionReason
     ) {
-        return ResponseEntity.ok(bookingService.updateBookingStatus(id, status));
+        return ResponseEntity.ok(bookingService.updateBookingStatus(id, status, rejectionReason));
     }
 
     @PostMapping("/{id}/cancel")
@@ -62,5 +65,13 @@ public class BookingController {
     ) {
         bookingService.cancelBooking(id, principalUser.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/slots")
+    public ResponseEntity<List<Booking>> getSlots(
+            @RequestParam String resourceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return ResponseEntity.ok(bookingService.getBookedSlots(resourceId, date));
     }
 }
