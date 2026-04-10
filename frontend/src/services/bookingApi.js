@@ -20,6 +20,15 @@ export const getMyBookings = async () => {
     return response.data;
 };
 
+export const updateBooking = async (id, bookingData) => {
+    const response = await axios.put(`${API_URL}/${id}`, bookingData, {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+    });
+    return response.data;
+};
+
 export const cancelBooking = async (id) => {
     await axios.post(`${API_URL}/${id}/cancel`, {}, {
         headers: {

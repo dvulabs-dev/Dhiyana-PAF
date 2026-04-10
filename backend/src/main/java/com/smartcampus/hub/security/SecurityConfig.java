@@ -39,6 +39,7 @@ public class SecurityConfig {
                                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MANAGER")
                                 .requestMatchers("/api/technician/**").hasRole("TECHNICIAN")
                                 .requestMatchers("/api/bookings/slots").authenticated()
+                                .requestMatchers(org.springframework.http.HttpMethod.PATCH, "/api/bookings/*/status").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
                                 .requestMatchers("/api/bookings/**").authenticated()
                                 .requestMatchers("/ws/**").permitAll()
                                 .anyRequest().authenticated()

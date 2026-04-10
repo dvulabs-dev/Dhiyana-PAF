@@ -23,6 +23,12 @@ public class Booking {
     private String id;
     
     private String resourceId;
+    private String resourceName;
+    private String resourceType;
+    private String resourceLocation;
+    private int resourceCapacity;
+    private int minAttendeesConstraint;
+    private int maxAttendeesConstraint;
     private String userEmail;
     
     private LocalDateTime startTime;

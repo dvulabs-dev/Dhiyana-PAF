@@ -30,52 +30,24 @@ public class BookingService {
     }
 
     public Booking createBooking(Booking booking) {
-        // Load and validate resource
         Resource resource = resourceRepository.findById(booking.getResourceId())
                 .orElseThrow(() -> new RuntimeException("Resource not found"));
 
-        if (resource.getStatus() != null && !"ACTIVE".equals(resource.getStatus().name())) {
-            throw new RuntimeException("Resource is not available for booking.");
-        }
+        validateBooking(booking, resource);
 
-        // Validate duration constraint (maxBookingHours)
-        if (resource.getMaxBookingHours() > 0) {
-            long hours = Duration.between(booking.getStartTime(), booking.getEndTime()).toHours();
-            if (hours > resource.getMaxBookingHours()) {
-                throw new RuntimeException(
-                    "Maximum booking duration for this resource is " + resource.getMaxBookingHours() + " hour(s).");
-            }
-        }
+        // Set resource details on booking for easier UI display
 
-        // Validate end time is after start time
-        if (!booking.getEndTime().isAfter(booking.getStartTime())) {
-            throw new RuntimeException("End time must be after start time.");
-        }
-
-        // Validate attendee constraints
-        int attendees = booking.getExpectedAttendees();
-        if (resource.getMinAttendees() > 0 && attendees < resource.getMinAttendees()) {
-            throw new RuntimeException(
-                "This resource requires a minimum of " + resource.getMinAttendees() + " attendees.");
-        }
-        if (resource.getMaxAttendees() > 0 && attendees > resource.getMaxAttendees()) {
-            throw new RuntimeException(
-                "This resource allows a maximum of " + resource.getMaxAttendees() + " attendees.");
-        }
-        if (resource.getCapacity() > 0 && attendees > resource.getCapacity()) {
-            throw new RuntimeException(
-                "Expected attendees exceed resource capacity of " + resource.getCapacity() + ".");
-        }
-
-        // Conflict Detection (vs APPROVED bookings)
-        List<Booking> overlaps = bookingRepository.findOverlappingBookings(
-                booking.getResourceId(),
-                booking.getStartTime(),
-                booking.getEndTime()
-        );
-        if (!overlaps.isEmpty()) {
-            throw new RuntimeException("Booking conflict! This resource is already booked for the selected time slot.");
-        }
+        // Set resource details on booking for easier UI display
+        booking.setResourceName(resource.getName());
+        booking.setResourceType(resource.getType() != null ? resource.getType().name() : "RESOURCE");
+        booking.setResourceCapacity(resource.getCapacity());
+        booking.setMinAttendeesConstraint(resource.getMinAttendees());
+        booking.setMaxAttendeesConstraint(resource.getMaxAttendees());
+        
+        String loc = (resource.getBuilding() != null ? resource.getBuilding() : "") + 
+                    (resource.getFloor() != null ? ", " + resource.getFloor() : "") + 
+                    (resource.getRoomCode() != null ? " [" + resource.getRoomCode() + "]" : "");
+        booking.setResourceLocation(loc.trim().startsWith(",") ? loc.trim().substring(1).trim() : loc.trim());
 
         booking.setStatus(BookingStatus.PENDING);
         Booking saved = bookingRepository.save(booking);
@@ -123,9 +95,9 @@ public class BookingService {
         notificationService.sendToUser(updated.getUserEmail(), Notification.builder()
                 .title("Booking Status Updated")
                 .message(message)
-                .type(status == BookingStatus.APPROVED
-                        ? Notification.NotificationType.BOOKING_APPROVED
-                        : Notification.NotificationType.BOOKING_REJECTED)
+                .type(status == BookingStatus.REJECTED
+                        ? Notification.NotificationType.BOOKING_REJECTED
+                        : Notification.NotificationType.BOOKING_APPROVED)
                 .relatedId(updated.getId())
                 .build());
 
@@ -142,5 +114,81 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+    }
+
+    public Booking updateBooking(String id, Booking updated, String userEmail) {
+        Booking existing = bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (!existing.getUserEmail().equals(userEmail)) {
+            throw new RuntimeException("Unauthorized to update this booking");
+        }
+
+        if (existing.getStatus() != BookingStatus.PENDING) {
+            throw new RuntimeException("Only PENDING bookings can be updated.");
+        }
+
+        Resource resource = resourceRepository.findById(existing.getResourceId())
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+
+        // Update fields
+        existing.setStartTime(updated.getStartTime());
+        existing.setEndTime(updated.getEndTime());
+        existing.setPurpose(updated.getPurpose());
+        existing.setExpectedAttendees(updated.getExpectedAttendees());
+
+        // Re-validate
+        validateBooking(existing, resource);
+
+        return bookingRepository.save(existing);
+    }
+
+    private void validateBooking(Booking booking, Resource resource) {
+        if (resource.getStatus() != null && !"ACTIVE".equals(resource.getStatus().name())) {
+            throw new RuntimeException("Resource is not available for booking.");
+        }
+
+        // Validate duration constraint (maxBookingHours)
+        if (resource.getMaxBookingHours() > 0 && booking.getStartTime() != null && booking.getEndTime() != null) {
+            long hours = Duration.between(booking.getStartTime(), booking.getEndTime()).toHours();
+            if (hours > resource.getMaxBookingHours()) {
+                throw new RuntimeException(
+                        "Maximum booking duration for this resource is " + resource.getMaxBookingHours() + " hour(s).");
+            }
+        }
+
+        // Validate end time is after start time
+        if (!booking.getEndTime().isAfter(booking.getStartTime())) {
+            throw new RuntimeException("End time must be after start time.");
+        }
+
+        // Validate attendee constraints
+        int attendees = booking.getExpectedAttendees();
+        if (resource.getMinAttendees() > 0 && attendees < resource.getMinAttendees()) {
+            throw new RuntimeException(
+                    "This resource requires a minimum of " + resource.getMinAttendees() + " attendees.");
+        }
+        if (resource.getMaxAttendees() > 0 && attendees > resource.getMaxAttendees()) {
+            throw new RuntimeException(
+                    "This resource allows a maximum of " + resource.getMaxAttendees() + " attendees.");
+        }
+        if (resource.getCapacity() > 0 && attendees > resource.getCapacity()) {
+            throw new RuntimeException(
+                    "Expected attendees exceed resource capacity of " + resource.getCapacity() + ".");
+        }
+
+        // Conflict Detection (vs APPROVED bookings, but exclude self!)
+        List<Booking> overlaps = bookingRepository.findOverlappingBookings(
+                booking.getResourceId(),
+                booking.getStartTime(),
+                booking.getEndTime()
+        );
+        
+        // If we are updating, ignore overlap with current booking ID
+        boolean hasConflict = overlaps.stream().anyMatch(b -> !b.getId().equals(booking.getId()));
+        
+        if (hasConflict) {
+            throw new RuntimeException("Booking conflict! This resource is already booked for the selected time slot.");
+        }
     }
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getMyBookings, getAllBookings, cancelBooking, updateBookingStatus } from '../../services/bookingApi';
+import { getResources } from '../../services/catalogueApi';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
-import { Calendar, Clock, Trash2, Info, CheckCircle, XCircle, Loader, Users, Filter } from 'lucide-react';
+import { Calendar, Clock, Trash2, Info, CheckCircle, XCircle, Loader, Users, Filter, MapPin } from 'lucide-react';
 import PageHeader from '../../components/Common/PageHeader';
 
 const MyBookings = () => {
@@ -10,6 +11,7 @@ const MyBookings = () => {
     const isAdmin = hasRole('ADMIN') || hasRole('MANAGER');
 
     const [bookings, setBookings] = useState([]);
+    const [resourceMap, setResourceMap] = useState({});
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
 
@@ -21,8 +23,22 @@ const MyBookings = () => {
     const fetchBookings = async () => {
         setLoading(true);
         try {
-            const data = isAdmin ? await getAllBookings() : await getMyBookings();
-            setBookings(data);
+            // Fetch bookings and resources in parallel for mapping
+            const [bookingData, resourceData] = await Promise.all([
+                isAdmin ? getAllBookings() : getMyBookings(),
+                getResources({ size: 100 }) // Adjust size as needed
+            ]);
+            
+            // Create a map of resourceId -> resourceObject
+            const rMap = {};
+            if (resourceData && resourceData.content) {
+                resourceData.content.forEach(r => {
+                    rMap[r.id] = r;
+                });
+            }
+            
+            setResourceMap(rMap);
+            setBookings(bookingData);
         } catch (err) {
             toast.error('Failed to load bookings');
         } finally {
@@ -58,6 +74,20 @@ const MyBookings = () => {
         }
     };
 
+    const handleCloseBooking = async (id) => {
+        if (!window.confirm('Mark this booking as CLOSED? This indicates the resource has been used and the session is over.')) return;
+        setActionLoading(true);
+        try {
+            await updateBookingStatus(id, 'CLOSED');
+            toast.success('Booking marked as CLOSED');
+            fetchBookings();
+        } catch (err) {
+            toast.error('Failed to close booking');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const openRejectModal = (booking) => {
         setRejectTarget(booking);
         setRejectionReason('');
@@ -87,6 +117,7 @@ const MyBookings = () => {
             case 'REJECTED': return 'text-red-600 bg-red-50 border-red-200';
             case 'PENDING': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
             case 'CANCELLED': return 'text-gray-500 bg-gray-50 border-gray-200';
+            case 'CLOSED': return 'text-indigo-600 bg-indigo-50 border-indigo-200';
             default: return 'text-gray-600 bg-gray-50 border-gray-200';
         }
     };
@@ -96,7 +127,7 @@ const MyBookings = () => {
 
     const filtered = statusFilter ? bookings.filter(b => b.status === statusFilter) : bookings;
 
-    const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
+    const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'CLOSED'];
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans">
@@ -154,10 +185,23 @@ const MyBookings = () => {
                                         <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(booking.status)} shadow-sm`}>
                                             {booking.status}
                                         </span>
-                                        <h3 className="text-xl font-black text-slate-900 tracking-tight italic">
-                                            Resource: {booking.resourceId}
+                                        {booking.resourceType && (
+                                            <span className="px-3 py-1 bg-slate-100 text-[9px] font-black uppercase tracking-widest text-slate-500 rounded-lg border border-slate-200">
+                                                {booking.resourceType}
+                                            </span>
+                                        )}
+                                        <h3 className="text-3xl font-black text-slate-900 tracking-tighter italic leading-none">
+                                            <span className="text-blue-600 block text-[10px] uppercase tracking-[0.4em] not-italic mb-1 font-black">Reserved Facility</span>
+                                            {booking.resourceName || resourceMap[booking.resourceId]?.name || 'Unknown Asset'}
                                         </h3>
                                     </div>
+
+                                    {(booking.resourceLocation || resourceMap[booking.resourceId]?.location) && (
+                                        <div className="flex items-center gap-2 text-blue-600 font-bold text-sm mb-5 bg-blue-50/50 w-fit px-5 py-2 rounded-2xl border border-blue-100/50 backdrop-blur-sm shadow-sm shadow-blue-500/5">
+                                            <MapPin className="w-4 h-4" />
+                                            {booking.resourceLocation || resourceMap[booking.resourceId]?.location}
+                                        </div>
+                                    )}
 
                                     {isAdmin && (
                                         <p className="text-xs text-slate-500 mb-3 flex items-center gap-1">
@@ -177,16 +221,41 @@ const MyBookings = () => {
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 text-slate-600 bg-slate-50 p-4 rounded-2xl text-sm border border-slate-100 flex items-start gap-3">
-                                        <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 mt-0.5">PURPOSE:</span>
-                                        <span className="font-medium italic">{booking.purpose}</span>
+                                    <div className="mt-6 text-slate-900 bg-slate-50 p-5 rounded-3xl text-sm border border-slate-200 flex flex-col gap-2 relative overflow-hidden group/purpose">
+                                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover/purpose:opacity-10 transition-opacity">
+                                            <Info className="w-12 h-12" />
+                                        </div>
+                                        <span className="font-black text-[10px] uppercase tracking-[0.2em] text-blue-600">Booking Purpose / Reason</span>
+                                        <span className="font-bold text-lg leading-relaxed">{booking.purpose}</span>
                                     </div>
 
-                                    {booking.expectedAttendees > 0 && (
-                                        <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                                            <Users className="w-3.5 h-3.5" /> Expected Attendees: <strong className="ml-1 text-slate-700">{booking.expectedAttendees}</strong>
-                                        </p>
-                                    )}
+                                    <div className="mt-4 flex flex-wrap gap-6 items-center border-t border-slate-50 pt-4">
+                                        <div className="flex items-center gap-2">
+                                            <Users className="w-4 h-4 text-slate-400" />
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Booked For</p>
+                                                <p className="text-sm font-black text-slate-900">{booking.expectedAttendees} Members</p>
+                                            </div>
+                                        </div>
+                                        {booking.resourceCapacity > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Max Capacity</p>
+                                                    <p className="text-sm font-bold text-slate-600">{booking.resourceCapacity}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {booking.minAttendeesConstraint > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Constraint</p>
+                                                    <p className="text-sm font-bold text-slate-600">Min {booking.minAttendeesConstraint} users</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {booking.rejectionReason && (
                                         <div className="mt-3 bg-red-50 border border-red-100 rounded-2xl p-3 text-sm text-red-700">
@@ -224,6 +293,15 @@ const MyBookings = () => {
                                         >
                                             <Trash2 className="w-4 h-4 mr-2" />
                                             Cancel
+                                        </button>
+                                    )}
+                                    {isAdmin && booking.status === 'APPROVED' && (
+                                        <button
+                                            disabled={actionLoading}
+                                            onClick={() => handleCloseBooking(booking.id)}
+                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-2xl transition-all font-black text-xs uppercase tracking-widest border border-indigo-200 shadow-sm disabled:opacity-50"
+                                        >
+                                            <CheckCircle className="w-4 h-4" /> Close Booking
                                         </button>
                                     )}
                                 </div>
