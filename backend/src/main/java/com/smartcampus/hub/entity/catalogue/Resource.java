@@ -12,6 +12,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -40,6 +41,7 @@ public class Resource {
     private int maxBookingHours;  // 0 = unlimited, >0 = max hours per booking
     private int minAttendees;     // 0 = no min
     private int maxAttendees;     // 0 = no max (use capacity)
+    private List<String> timeSlots; // predefined time slots e.g. ["08:00-10:00", "10:00-12:00"]
     
     private ResourceType type;
     private ResourceStatus status;

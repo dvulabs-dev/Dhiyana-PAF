@@ -137,6 +137,7 @@ public class ResourceDataSeeder implements CommandLineRunner {
                 .maxBookingHours(0)
                 .minAttendees(0)
                 .maxAttendees(0)
+                .timeSlots(List.of("08:00-10:00", "10:00-12:00", "13:00-15:00", "15:00-17:00", "18:00-20:00"))
                 .build();
     }
 
@@ -157,6 +158,7 @@ public class ResourceDataSeeder implements CommandLineRunner {
                 .maxBookingHours(2)
                 .minAttendees(4)
                 .maxAttendees(5)
+                .timeSlots(List.of("08:00-10:00", "10:00-12:00", "13:00-15:00", "15:00-17:00"))
                 .build();
     }
 }

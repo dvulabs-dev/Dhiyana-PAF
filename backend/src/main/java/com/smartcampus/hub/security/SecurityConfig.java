@@ -35,10 +35,13 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(req ->
                         req.requestMatchers("/auth/**").permitAll()
-                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/catalogue/**").authenticated()
+                                .requestMatchers("/api/catalogue/**").hasAnyRole("ADMIN", "MANAGER")
+                                .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MANAGER")
                                 .requestMatchers("/api/technician/**").hasRole("TECHNICIAN")
-                                .requestMatchers("/api/manager/**").hasRole("MANAGER")
-                                .requestMatchers("/ws/**").permitAll() // WebSocket endpoint
+                                .requestMatchers("/api/bookings/slots").authenticated()
+                                .requestMatchers("/api/bookings/**").authenticated()
+                                .requestMatchers("/ws/**").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -132,17 +132,19 @@ const ResourceCard = ({ resource, onEdit, onDelete, onStatusChange }) => {
                         </div>
                     )}
 
-                    <button
-                        disabled={resource.status !== 'ACTIVE'}
-                        onClick={() => setIsBookingModalOpen(true)}
-                        className="w-full py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                        {resource.status === 'ACTIVE' ? 'Book Now' : 'Unavailable'}
-                    </button>
+                    {!isAdmin && (
+                        <button
+                            disabled={resource.status !== 'ACTIVE'}
+                            onClick={() => setIsBookingModalOpen(true)}
+                            className="w-full py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            {resource.status === 'ACTIVE' ? 'Book Now' : 'Unavailable'}
+                        </button>
+                    )}
                 </div>
             </div>
 
-            {isBookingModalOpen && (
+            {isBookingModalOpen && !isAdmin && (
                 <BookingModal
                     resource={resource}
                     onClose={() => setIsBookingModalOpen(false)}

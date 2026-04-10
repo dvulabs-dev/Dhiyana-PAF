@@ -22,7 +22,6 @@ const UserCatalogue = () => {
         setLoading(true);
         try {
             const params = {
-                status: 'ACTIVE',
                 page: 0,
                 size: 100,
                 search: search || undefined,
