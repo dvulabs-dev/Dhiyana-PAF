@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { UserPlus, Shield, Briefcase, Loader, Users, Search, Ticket, Wrench } from 'lucide-react';
+import { UserPlus, Shield, Briefcase, Loader, Users, Search, Ticket, Wrench, Mail, Lock, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { createStaffAccount, getAdminOverview, getAllUsersForAdmin } from '../../services/authAdminApi';
 
@@ -84,50 +84,55 @@ const AdminPanel = () => {
     };
 
     return (
-        <div className="p-6 md:p-8 bg-gradient-to-b from-slate-50 to-white min-h-[calc(100vh-10rem)]">
+        <div className="p-6 md:p-8 min-h-[calc(100vh-5rem)]">
             <div className="max-w-7xl mx-auto space-y-6">
-                <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                    <div className="px-8 py-7 bg-slate-900 text-white border-b border-slate-800">
+                <div 
+                    className="rounded-3xl border border-slate-200 bg-white shadow-xl overflow-hidden relative min-h-[160px] flex flex-col justify-center"
+                    style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center' }}
+                >
+                    {/* Dark Blue Overlay (Reduced Opacity and No Blur) */}
+                    <div className="absolute inset-0 bg-slate-900/60 z-0"></div>
+                    <div className="relative z-10 px-8 py-8 text-white">
                         <div className="flex items-center gap-3 mb-2">
-                            <Shield className="w-6 h-6 text-blue-400" />
-                            <h1 className="text-2xl md:text-3xl font-black tracking-tight">Admin Control Center</h1>
+                            <Shield className="w-8 h-8 text-blue-400 drop-shadow-md" />
+                            <h1 className="text-3xl md:text-4xl font-black tracking-tight drop-shadow-lg italic">Admin Control Center</h1>
                         </div>
-                        <p className="text-slate-300 text-sm font-medium">
+                        <p className="text-blue-100/90 text-sm font-medium drop-shadow-md">
                             Manage users, monitor operations, and create staff accounts from one place.
                         </p>
                     </div>
                 </div>
 
                 <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-black uppercase tracking-wider text-slate-400">Users</span>
                             <Users className="w-4 h-4 text-blue-500" />
                         </div>
                         <p className="mt-3 text-3xl font-black text-slate-900">{overview.totalUsers}</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-black uppercase tracking-wider text-slate-400">Staff</span>
                             <Wrench className="w-4 h-4 text-blue-500" />
                         </div>
                         <p className="mt-3 text-3xl font-black text-slate-900">{overview.staffUsers}</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-black uppercase tracking-wider text-slate-400">Tickets</span>
                             <Ticket className="w-4 h-4 text-blue-500" />
                         </div>
                         <p className="mt-3 text-3xl font-black text-slate-900">{overview.totalTickets}</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-black uppercase tracking-wider text-slate-400">Open</span>
                             <Ticket className="w-4 h-4 text-amber-500" />
                         </div>
                         <p className="mt-3 text-3xl font-black text-slate-900">{overview.openTickets}</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-black uppercase tracking-wider text-slate-400">In Progress</span>
                             <Loader className="w-4 h-4 text-blue-500" />
@@ -137,147 +142,276 @@ const AdminPanel = () => {
                 </section>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                    <div className="xl:col-span-1 rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50">
-                            <h2 className="text-lg font-black text-slate-900">Create Staff Member</h2>
-                            <p className="text-xs text-slate-500 font-medium mt-1">Only manager and technician roles are allowed.</p>
+                    <div className="xl:col-span-1 rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col relative">
+                        {/* Decorative background accent */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+
+                        <div className="px-8 py-7 border-b border-slate-100 bg-white relative z-10">
+                            <div className="flex items-center gap-3 mb-1">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 shadow-sm">
+                                    <UserPlus className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight italic">Onboard Staff</h2>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-3 ml-1">Provision Elevated Access</p>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Full Name</label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all"
-                                    placeholder="Staff member name"
-                                />
-                            </div>
+                        <form onSubmit={handleSubmit} className="p-8 space-y-6 flex-1 flex flex-col relative z-10 bg-slate-50/30">
+                            <div className="space-y-5 flex-1">
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Full Legal Name</label>
+                                    <div className="relative group">
+                                        <User className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-blue-500 transition-colors" />
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white shadow-sm font-bold text-sm text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                                            placeholder="John Doe"
+                                        />
+                                    </div>
+                                </div>
 
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Email</label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all"
-                                    placeholder="staff@campus.edu"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Campus Email</label>
+                                    <div className="relative group">
+                                        <Mail className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-blue-500 transition-colors" />
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white shadow-sm font-bold text-sm text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                                            placeholder="staff@campus.edu"
+                                        />
+                                    </div>
+                                </div>
 
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Temporary Password</label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    required
-                                    minLength={6}
-                                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all"
-                                    placeholder="Minimum 6 characters"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">Initial Password</label>
+                                    <div className="relative group">
+                                        <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-blue-500 transition-colors" />
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            required
+                                            minLength={6}
+                                            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white shadow-sm font-bold text-sm text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
+                                </div>
 
-                            <div>
-                                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Staff Role</label>
-                                <div className="relative">
-                                    <Briefcase className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                                    <select
-                                        name="role"
-                                        value={formData.role}
-                                        onChange={handleChange}
-                                        className="w-full pl-10 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 transition-all"
-                                    >
-                                        <option value="TECHNICIAN">TECHNICIAN</option>
-                                        <option value="MANAGER">MANAGER</option>
-                                    </select>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 ml-1">System Role</label>
+                                    <div className="relative group">
+                                        <Briefcase className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-blue-500 shadow-sm transition-colors z-10" />
+                                        <select
+                                            name="role"
+                                            value={formData.role}
+                                            onChange={handleChange}
+                                            className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white shadow-sm font-black text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none tracking-widest cursor-pointer"
+                                        >
+                                            <option value="TECHNICIAN">TECHNICIAN</option>
+                                            <option value="MANAGER">MANAGER</option>
+                                        </select>
+                                        {/* Custom dropdown arrow */}
+                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="pt-1">
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="w-full inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-wider hover:bg-blue-600 disabled:bg-slate-400 transition-colors"
-                            >
-                                {saving ? <Loader className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
-                                {saving ? 'Creating...' : 'Create Staff Account'}
-                            </button>
-                        </div>
+                            <div className="pt-4 mt-auto">
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="w-full relative group overflow-hidden inline-flex items-center justify-center gap-3 px-7 py-4 rounded-2xl bg-blue-600 text-white font-black text-xs uppercase tracking-widest hover:bg-slate-900 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 shadow-xl shadow-blue-500/20 hover:shadow-slate-900/20"
+                                >
+                                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400/0 via-white/20 to-blue-400/0 -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out pointer-events-none"></div>
+                                    {saving ? <Loader className="w-5 h-5 animate-spin relative z-10 text-white" /> : <Shield className="w-5 h-5 relative z-10 text-white" />}
+                                    <span className="relative z-10 drop-shadow-sm">{saving ? 'Authenticating...' : 'Provision Account'}</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
 
-                    <div className="xl:col-span-2 rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="xl:col-span-2 flex flex-col">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                             <div>
-                                <h2 className="text-lg font-black text-slate-900">User Directory</h2>
-                                <p className="text-xs text-slate-500 font-medium mt-1">View all users and role memberships.</p>
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight italic">User & Staff Directory</h2>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 ml-1">Current Staff & Members</p>
                             </div>
-                            <div className="relative">
-                                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <div className="relative w-full sm:w-72">
+                                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
                                 <input
                                     type="text"
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
-                                    placeholder="Search user, email, role"
-                                    className="pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:border-blue-500"
+                                    placeholder="Search directory..."
+                                    className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white text-xs font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none shadow-sm transition-all text-slate-700 placeholder:text-slate-300"
                                 />
                             </div>
                         </div>
 
                         {loadingData ? (
-                            <div className="p-10 flex items-center justify-center">
+                            <div className="flex-1 flex items-center justify-center py-20">
                                 <Loader className="w-8 h-8 animate-spin text-blue-600" />
                             </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-xs">
-                                        <tr>
-                                            <th className="text-left px-6 py-3 font-black">Name</th>
-                                            <th className="text-left px-6 py-3 font-black">Email</th>
-                                            <th className="text-left px-6 py-3 font-black">Roles</th>
-                                            <th className="text-left px-6 py-3 font-black">Created</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {filteredUsers.map((user) => (
-                                            <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                                                <td className="px-6 py-4 font-semibold text-slate-900">{user.name || 'N/A'}</td>
-                                                <td className="px-6 py-4 text-slate-600">{user.email}</td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {(user.roles || []).map((role) => (
-                                                            <span key={`${user.id}-${role}`} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                                                                {role}
-                                                            </span>
-                                                        ))}
+                        ) : (() => {
+                            const staffMembers = filteredUsers.filter(user => {
+                                const role = (user.roles || [])[0]?.replace('ROLE_', '') || 'MEMBER';
+                                return ['ADMIN', 'MANAGER', 'TECHNICIAN'].includes(role);
+                            });
+                            
+                            const normalUsers = filteredUsers.filter(user => {
+                                const role = (user.roles || [])[0]?.replace('ROLE_', '') || 'MEMBER';
+                                return !['ADMIN', 'MANAGER', 'TECHNICIAN'].includes(role);
+                            });
+
+                            return (
+                                <div className="flex-1 overflow-y-auto max-h-[850px] pr-2 pb-10 pt-2 custom-scrollbar space-y-12">
+                                    {/* STAFF DIRECTORY (CARDS) */}
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-6 border-b border-slate-200/60 pb-3">
+                                            <Shield className="w-4 h-4 text-blue-500" />
+                                            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Administrative Staff</h3>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+                                            {staffMembers.map((user) => {
+                                                const primaryRole = (user.roles || [])[0]?.replace('ROLE_', '') || 'MEMBER';
+                                                
+                                                return (
+                                                    <div key={user.id} className="bg-[#0f172a]/80 backdrop-blur-3xl rounded-[2rem] border border-slate-700/60 shadow-xl hover:shadow-[0_8px_30px_rgba(59,130,246,0.2)] hover:border-blue-500/50 transition-all duration-500 overflow-hidden flex flex-col relative group">
+                                                        <div className="h-16 bg-gradient-to-r from-blue-900/40 via-slate-800/40 to-slate-900/60 border-b border-slate-700/60 group-hover:bg-blue-900/40 transition-colors relative overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl -mt-10 -mr-10"></div>
+                                                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl -mb-10 -ml-10"></div>
+                                                        </div>
+                                                        
+                                                        <div className="flex flex-col items-center px-6 pb-6 relative -mt-10 z-10">
+                                                            <button className="absolute top-12 right-4 p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors">
+                                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                                                            </button>
+
+                                                            <div className="w-20 h-20 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full mb-3 flex border-4 border-slate-900 shadow-2xl items-center justify-center text-3xl font-black text-white group-hover:scale-105 group-hover:border-blue-500/50 transition-all duration-300 overflow-hidden relative">
+                                                                {user.name ? (
+                                                                    <span className="text-white/95">{user.name[0].toUpperCase()}</span>
+                                                                ) : (
+                                                                    <User className="w-8 h-8 text-blue-400" />
+                                                                )}
+                                                            </div>
+
+                                                            <h3 className="text-sm font-black text-white group-hover:text-blue-400 transition-colors truncate w-full text-center drop-shadow-md">{user.name || 'Anonymous User'}</h3>
+                                                            <p className="text-[9.5px] uppercase tracking-[0.2em] font-bold text-slate-400 mt-0.5 mb-3">{primaryRole.toLowerCase()}</p>
+                                                            
+                                                            <div className="px-3.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full text-[8.5px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-sm">
+                                                                ACTIVE
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="px-6 py-4 space-y-3 bg-[#0a0f1d]/60 flex-1 border-t border-slate-700/50 relative">
+                                                            <div className="flex items-center gap-3 relative z-10">
+                                                                <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center flex-shrink-0 shadow-inner group-hover:border-blue-500/40 transition-colors">
+                                                                    <Mail className="w-3 h-3 text-slate-300 group-hover:text-blue-400 transition-colors" />
+                                                                </div>
+                                                                <span className="text-[11px] font-bold text-slate-300 truncate">{user.email}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-3 relative z-10">
+                                                                <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center flex-shrink-0 shadow-inner group-hover:border-blue-500/40 transition-colors">
+                                                                    <Briefcase className="w-3 h-3 text-slate-300 group-hover:text-blue-400 transition-colors" />
+                                                                </div>
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-700/50">Campus Staff</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-auto flex border-t border-slate-700/50 bg-[#0f172a]/90 text-[9px] font-black uppercase tracking-widest text-slate-500 divide-x divide-slate-700/50 relative z-10">
+                                                            <div className="w-1/2 px-4 py-3 flex flex-col items-center justify-center group-hover:bg-slate-800/30 transition-colors">
+                                                                <span className="text-[8px] text-slate-500 mb-0.5 tracking-[0.2em]">Joined</span>
+                                                                <span className="text-blue-200">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}</span>
+                                                            </div>
+                                                            <div className="w-1/2 px-4 py-3 flex flex-col items-center justify-center group-hover:bg-slate-800/30 transition-colors">
+                                                                <span className="text-[8px] text-slate-500 mb-0.5 tracking-[0.2em]">Access</span>
+                                                                <span className="text-blue-200">{primaryRole}</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-500">
-                                                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {filteredUsers.length === 0 && (
-                                            <tr>
-                                                <td colSpan="4" className="px-6 py-10 text-center text-slate-400 font-medium">
-                                                    No users found for this search.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                                                );
+                                            })}
+                                            {staffMembers.length === 0 && (
+                                                <div className="col-span-full py-10 text-center flex flex-col items-center bg-white rounded-3xl border border-dashed border-slate-300">
+                                                    <Shield className="w-6 h-6 text-slate-300 mb-3" />
+                                                    <p className="text-slate-500 font-bold text-sm">No administrative staff found.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* PUBLIC USERS (TABLE) */}
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-6 border-b border-slate-200/60 pb-3">
+                                            <Users className="w-4 h-4 text-slate-400" />
+                                            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">General Public Users</h3>
+                                        </div>
+                                        
+                                        <div className="bg-[#0f172a]/80 backdrop-blur-3xl rounded-[2rem] border border-slate-700/60 shadow-xl overflow-hidden relative">
+                                            {/* Decorative glow inside table container */}
+                                            <div className="absolute top-0 right-1/4 w-64 h-32 bg-blue-500/10 rounded-full blur-[3rem] pointer-events-none"></div>
+
+                                            <table className="w-full text-sm relative z-10">
+                                                <thead className="bg-[#0a0f1d]/60 text-slate-400 uppercase tracking-widest text-[9px] font-black border-b border-slate-700/50">
+                                                    <tr>
+                                                        <th className="text-left px-8 py-5">Profile Name</th>
+                                                        <th className="text-left px-6 py-5">Email Address</th>
+                                                        <th className="text-left px-6 py-5">Clearance</th>
+                                                        <th className="text-left px-6 py-5">Member Since</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-700/50">
+                                                    {normalUsers.map((user) => {
+                                                        const primaryRole = (user.roles || [])[0]?.replace('ROLE_', '') || 'MEMBER';
+                                                        return (
+                                                            <tr key={user.id} className="hover:bg-slate-800/40 transition-colors group">
+                                                                <td className="px-8 py-5">
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className="w-9 h-9 rounded-full bg-slate-800/80 border border-slate-600 text-white flex items-center justify-center font-black text-xs shadow-inner group-hover:border-blue-500/50 transition-colors">
+                                                                            {user.name ? user.name[0].toUpperCase() : <User className="w-4 h-4 text-blue-400" />}
+                                                                        </div>
+                                                                        <span className="font-bold text-white/95 group-hover:text-blue-300 transition-colors drop-shadow-sm">{user.name || 'Anonymous'}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-5 text-slate-300 font-medium">{user.email}</td>
+                                                                <td className="px-6 py-5">
+                                                                    <span className="px-3 py-1 bg-slate-800/50 text-slate-300 border border-slate-600/50 rounded-full text-[9px] font-black uppercase tracking-widest backdrop-blur-sm">
+                                                                        {primaryRole}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-5 text-blue-200 font-medium tracking-wide">
+                                                                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                    {normalUsers.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan="4" className="px-6 py-14 text-center text-slate-400 font-medium">
+                                                                No general public users found matching your search.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
             </div>

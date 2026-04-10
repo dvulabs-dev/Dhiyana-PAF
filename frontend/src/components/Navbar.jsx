@@ -1,9 +1,7 @@
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, BookOpen, Calendar, Ticket, LogOut, User, Mail, MapPin, Shield } from 'lucide-react';
-
-import NotificationPanel from '../modules/Notifications/NotificationPanel';
+import { LayoutDashboard, BookOpen, Calendar, Ticket, LogOut, User, Shield } from 'lucide-react';
 
 const Navbar = () => {
     const { user, logout, displayName, displayPicture } = useAuth();
@@ -25,98 +23,60 @@ const Navbar = () => {
     const displayRole = typeof rawRole === 'string' && rawRole.length <= 30 ? rawRole.replace('ROLE_', '') : 'MEMBER';
 
     return (
-        <header className="w-full">
-            {/* Top Bar for consistency */}
-            <div className="bg-slate-900 text-white py-2 px-4 sm:px-6 lg:px-8 hidden md:block border-b border-white/5">
-                <div className="max-w-7xl mx-auto flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em]">
-                    <div className="flex items-center space-x-6">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                            <span>Operations Center Online</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-400">
-                            <MapPin className="w-3 h-3 text-blue-500" />
-                            <span>Campus Network Active</span>
-                        </div>
+        <aside className="w-64 lg:w-72 bg-[#081021] flex-shrink-0 flex flex-col h-screen overflow-y-auto sticky top-0 shadow-2xl z-50 rounded-r-3xl border-r border-blue-900/30">
+            {/* Profile Section inside Sidebar */}
+            <div className="flex flex-col items-center pt-10 pb-8 px-6">
+                <div className="relative mb-4 group cursor-pointer">
+                    <div className="w-24 h-24 rounded-full overflow-hidden shadow-2xl border-4 border-white/10 bg-slate-800 flex items-center justify-center text-3xl font-black text-white group-hover:border-blue-400 group-hover:scale-105 transition-all duration-300">
+                        {displayPicture ? (
+                            <img src={displayPicture} alt={displayName} className="w-full h-full object-cover" />
+                        ) : (
+                            displayName?.[0]?.toUpperCase() || <User className="w-10 h-10" />
+                        )}
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <span className="text-blue-400">Secure Audit Active</span>
-                    </div>
+                </div>
+                <h2 className="text-white font-black text-lg tracking-tight text-center leading-tight mb-1 drop-shadow-md">{displayName}</h2>
+                <p className="text-blue-300 text-[10px] font-black uppercase tracking-widest truncate max-w-[200px] mb-3 drop-shadow-sm">{user?.email}</p>
+                <div className="inline-flex items-center px-4 py-1.5 bg-blue-500/20 rounded-full text-[9px] font-black text-blue-200 uppercase tracking-[0.2em] border border-blue-400/30 backdrop-blur-sm">
+                    {displayRole}
                 </div>
             </div>
 
-            <nav className="bg-white border-b border-slate-100 sticky top-0 z-40 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-20">
-                        <div className="flex items-center">
-                            <Link to={brandHomePath} className="flex-shrink-0 flex items-center gap-3 group">
-                                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xs border border-white/20 shadow-lg group-hover:bg-blue-600 transition-colors">SH</div>
-                                <div className="flex flex-col border-l border-slate-200 pl-3">
-                                    <span className="text-xl font-black text-slate-900 tracking-tighter italic leading-none group-hover:text-blue-600 transition-colors">SmartHub</span>
-                                    <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest mt-1">Ops Center</span>
-                                </div>
-                            </Link>
-                            <div className="hidden sm:ml-10 sm:flex sm:space-x-2">
-                                {navItems.map((item) => (
-                                    <NavLink
-                                        key={item.to}
-                                        to={item.to}
-                                        className={({ isActive }) =>
-                                            `inline-flex items-center px-4 py-2 text-[11px] font-black uppercase tracking-wider transition-all rounded-xl ${
-                                                isActive 
-                                                ? 'text-blue-600 bg-blue-50 shadow-inner' 
-                                                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                                            }`
-                                        }
-                                    >
-                                        <item.icon className="w-4 h-4 mr-2" />
-                                        {item.label}
-                                    </NavLink>
-                                ))}
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4">
-                            <NotificationPanel />
-                            
-                            <div className="h-8 w-px bg-slate-100 mx-2 hidden md:block"></div>
-
-                            <div className="flex items-center gap-3 pl-2 group cursor-pointer">
-                                <div className="hidden md:flex flex-col text-right leading-tight">
-                                    <span className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{displayName}</span>
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{displayRole}</span>
-                                </div>
-                                <div className="relative">
-                                    <div className="w-11 h-11 rounded-full border-2 border-slate-100 group-hover:border-blue-500 transition-all overflow-hidden shadow-sm">
-                                        {displayPicture ? (
-                                            <img
-                                                src={displayPicture}
-                                                alt={displayName}
-                                                className="w-full h-full object-cover"
-                                                referrerPolicy="no-referrer"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white font-black text-lg">
-                                                {displayName?.[0]?.toUpperCase() || <User className="w-5 h-5" />}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
-                                </div>
-                            </div>
-    
-                            <button 
-                                onClick={logout}
-                                className="ml-2 p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100 shadow-sm"
-                                title="Sign Out"
-                            >
-                                <LogOut className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            {/* Navigation Menu Links */}
+            <nav className="flex-1 py-4 flex flex-col gap-2">
+                {navItems.map((item) => (
+                    <NavLink
+                        key={item.to}
+                        to={item.to}
+                        className={({ isActive }) =>
+                            `flex items-center px-8 py-4 text-xs font-black uppercase tracking-widest transition-all relative overflow-visible ${
+                                isActive 
+                                ? 'text-slate-900 bg-[#f1f5f9] rounded-l-3xl shadow-[-10px_0_20px_rgba(0,0,0,0.15)] ml-4 z-10 before:absolute before:right-0 before:-top-5 before:w-5 before:h-5 before:bg-transparent before:rounded-br-2xl before:shadow-[10px_10px_0_0_#f1f5f9] after:absolute after:right-0 after:-bottom-5 after:w-5 after:h-5 after:bg-transparent after:rounded-tr-2xl after:shadow-[10px_-10px_0_0_#f1f5f9]' 
+                                : 'text-slate-300 hover:text-white hover:bg-white/10 rounded-l-3xl ml-4 mr-2 transition-colors'
+                            }`
+                        }
+                    >
+                        {({ isActive }) => (
+                            <>
+                                <item.icon className="w-5 h-5 mr-4" />
+                                {item.label}
+                            </>
+                        )}
+                    </NavLink>
+                ))}
             </nav>
-        </header>
+
+            {/* Logout Button */}
+            <div className="p-6 mt-auto">
+                <button 
+                    onClick={logout}
+                    className="flex w-full items-center gap-3 px-6 py-4 rounded-2xl text-slate-300 hover:text-red-400 hover:bg-white/10 transition-colors border border-transparent hover:border-red-500/30"
+                >
+                    <LogOut className="w-5 h-5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Logout</span>
+                </button>
+            </div>
+        </aside>
     );
 };
 
