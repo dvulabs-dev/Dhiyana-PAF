@@ -62,11 +62,9 @@ const LandingNavbar = () => {
                     <div className="flex justify-between h-20">
                         {/* Logo */}
                         <div className="flex items-center">
-                            <Link to="/" className="flex items-center gap-2">
-                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-500/20">
-                                    <div className="w-6 h-6 border-2 border-white rounded-md flex items-center justify-center text-[10px]">SH</div>
-                                </div>
-                                <div className="flex flex-col ml-1">
+                            <Link to="/" className="flex items-center gap-3">
+                                <img src="/favicon.svg" alt="SmartHub Logo" className="w-10 h-10" />
+                                <div className="flex flex-col">
                                     <span className="text-xl font-black text-slate-900 tracking-tighter leading-none">SmartHub</span>
                                     <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">Ops Center</span>
                                 </div>

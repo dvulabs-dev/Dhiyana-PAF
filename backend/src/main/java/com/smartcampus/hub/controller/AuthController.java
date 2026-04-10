@@ -2,6 +2,7 @@ package com.smartcampus.hub.controller;
 
 import com.smartcampus.hub.dto.LoginRequest;
 import com.smartcampus.hub.dto.RegisterRequest;
+import com.smartcampus.hub.security.PrincipalUser;
 import com.smartcampus.hub.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.Map;
 
@@ -23,10 +25,13 @@ public class AuthController {
     }
 
     @PostMapping("/staff")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> createStaff(@RequestBody RegisterRequest request) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<?> createStaff(
+            @RequestBody RegisterRequest request,
+            @AuthenticationPrincipal PrincipalUser principalUser
+    ) {
         try {
-            String result = authService.createStaff(request);
+            String result = authService.createStaff(request, principalUser);
             return ResponseEntity.ok(Map.of("message", result));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

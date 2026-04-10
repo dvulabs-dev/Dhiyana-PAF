@@ -19,6 +19,7 @@ public class Ticket {
     private String resourceId;
     private String reporterEmail;
     private String assigneeEmail;
+    private String department;
     private String title;
     private String description;
 
@@ -56,6 +57,9 @@ public class Ticket {
 
     public String getAssigneeEmail() { return assigneeEmail; }
     public void setAssigneeEmail(String assigneeEmail) { this.assigneeEmail = assigneeEmail; }
+
+    public String getDepartment() { return department; }
+    public void setDepartment(String department) { this.department = department; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
