@@ -66,9 +66,9 @@ const AuthPage = () => {
                 : null;
 
             const profileData = {
-                name: googleProfile?.name,
-                picture: googleProfile?.picture,
-                email: googleProfile?.email,
+                name: googleProfile?.name || '',
+                picture: googleProfile?.picture || '',
+                email: googleProfile?.email || '',
             };
 
             try {
@@ -104,180 +104,141 @@ const AuthPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center px-4 py-8 overflow-hidden relative">
-            {/* Animated background elements */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
-
-            <div className="relative max-w-5xl w-full">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                    {/* Left side - Welcome message and features */}
-                    <div className="hidden lg:flex flex-col justify-center text-white space-y-8">
-                        <div>
-                            <h1 className="text-5xl font-black tracking-tight mb-4">
-                                SmartHub<br />
-                                <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Operations Center</span>
-                            </h1>
-                            <p className="text-xl text-slate-300">Centralized management for campus facilities, assets, and maintenance.</p>
-                        </div>
-
-                        <div className="space-y-4">
-                            {[
-                                { icon: BookOpen, title: 'Asset Catalogue', desc: 'Real-time visibility into campus infrastructure' },
-                                { icon: Zap, title: 'Operation Bookings', desc: 'Automated reservation and conflict management' },
-                                { icon: Globe, title: 'Maintenance Tracking', desc: 'End-to-end incident handling and resolutions' },
-                            ].map((feature, idx) => (
-                                <div key={idx} className="flex items-start gap-4 group">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0 group-hover:shadow-lg group-hover:shadow-cyan-500/50 transition-all">
-                                        <feature.icon className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-white">{feature.title}</h3>
-                                        <p className="text-sm text-slate-400">{feature.desc}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Right side - Auth form */}
-                    <div className="w-full">
-                        <div className="relative bg-gradient-to-br from-white/95 to-white/90 backdrop-blur-xl rounded-3xl p-8 md:p-10 shadow-2xl border border-white/20">
-                            {/* Gradient border effect */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity blur"></div>
-
-                            <div className="relative">
-                                {/* Logo area */}
-                                <div className="flex justify-center mb-8">
-                                    <div className="relative">
-                                        <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center shadow-xl">
-                                            <div className="w-8 h-8 border-2 border-white rounded-md flex items-center justify-center text-xs text-white font-bold tracking-tighter">SH</div>
-                                        </div>
-                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-white animate-pulse"></div>
-                                    </div>
-                                </div>
-
-                                {/* Title */}
-                                <div className="text-center mb-8">
-                                    <h2 className="text-3xl font-black text-slate-900 mb-2">
-                                        {isRegister ? 'Create Account' : 'Welcome Back'}
-                                    </h2>
-                                    <p className="text-slate-600">
-                                        {isRegister
-                                            ? 'Join Smart Campus Hub and manage your bookings'
-                                            : 'Sign in to access your dashboard'}
-                                    </p>
-                                </div>
-
-                                {/* Form */}
-                                <form onSubmit={handleSubmit} className="space-y-5">
-                                    {isRegister && (
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-2.5">Full Name</label>
-                                            <div className="relative group">
-                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                                                <input
-                                                    type="text"
-                                                    name="name"
-                                                    value={formData.name}
-                                                    onChange={handleChange}
-                                                    className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 border-slate-200 bg-white/50 focus:border-blue-500 focus:bg-white focus:outline-none transition-all font-medium"
-                                                    placeholder="John Doe"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2.5">Email Address</label>
-                                        <div className="relative group">
-                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                                            <input
-                                                type="email"
-                                                name="email"
-                                                value={formData.email}
-                                                onChange={handleChange}
-                                                className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 border-slate-200 bg-white/50 focus:border-blue-500 focus:bg-white focus:outline-none transition-all font-medium"
-                                                placeholder="you@campus.edu"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2.5">Password</label>
-                                        <div className="relative group">
-                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                                            <input
-                                                type="password"
-                                                name="password"
-                                                value={formData.password}
-                                                onChange={handleChange}
-                                                className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 border-slate-200 bg-white/50 focus:border-blue-500 focus:bg-white focus:outline-none transition-all font-medium"
-                                                placeholder={isRegister ? 'Create a strong password' : 'Enter your password'}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="w-full mt-6 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-3.5 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:shadow-blue-500/40 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    >
-                                        {submitting ? (
-                                            <>
-                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                {isRegister ? 'Create Account' : 'Sign In'}
-                                                <ArrowRight className="w-5 h-5" />
-                                            </>
-                                        )}
-                                    </button>
-                                </form>
-
-                                {GOOGLE_LOGIN_ENABLED && (
-                                    <>
-                                        <div className="mt-6 flex items-center gap-4">
-                                            <div className="flex-1 h-px bg-slate-200"></div>
-                                            <span className="text-slate-400 text-sm font-medium">OR</span>
-                                            <div className="flex-1 h-px bg-slate-200"></div>
-                                        </div>
-
-                                        <div className="mt-6 flex justify-center">
-                                            <GoogleLogin
-                                                onSuccess={handleGoogleSuccess}
-                                                onError={() => toast.error('Google Login Failed')}
-                                                useOneTap
-                                                theme="outline"
-                                                shape="pill"
-                                                width="100%"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* Toggle signup/login */}
-                                <div className="mt-6 text-center">
-                                    <p className="text-slate-600">
-                                        {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsRegister((prev) => !prev)}
-                                            className="font-bold text-transparent bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text hover:underline transition-all"
-                                        >
-                                            {isRegister ? 'Sign In' : 'Create One'}
-                                        </button>
-                                    </p>
-                                </div>
-
-                                {/* Security badge */}
-                                <div className="mt-8 pt-6 border-t border-slate-200 text-center">
-                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                        🔒 Secure • Campus Protected • Encrypted
-                                    </p>
-                                </div>
+        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+            <div className="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+                
+                {/* Info Panel */}
+                <div className="text-center lg:text-left">
+                    <div className="inline-block">
+                        <div className="flex items-center gap-3 mb-6">
+                            <img src="/favicon.svg" alt="SmartHub Logo" className="w-14 h-14" />
+                            <div className="flex flex-col">
+                                <span className="text-3xl font-black text-slate-900 tracking-tighter leading-none">SmartHub</span>
+                                <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Ops Center</span>
                             </div>
                         </div>
+                    </div>
+                    <h1 className="text-4xl font-bold tracking-tighter text-slate-800 sm:text-5xl">
+                        {isRegister ? 'Create Your Account' : 'Access the Operations Hub'}
+                    </h1>
+                    <p className="mt-4 text-lg text-slate-600">
+                        The centralized platform for university asset management, bookings, and operational support.
+                    </p>
+                    <div className="mt-8 space-y-4">
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                                <BookOpen className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800">Resource Catalogue</h3>
+                                <p className="text-slate-600">Browse and reserve equipment, rooms, and facilities.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                                <Zap className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800">Incident Reporting</h3>
+                                <p className="text-slate-600">Report issues and track maintenance requests in real-time.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                                <Globe className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800">Centralized Dashboard</h3>
+                                <p className="text-slate-600">A single pane of glass for all your campus operational needs.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Form Panel */}
+                <div className="w-full max-w-md mx-auto">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl">
+                        <h2 className="text-2xl font-bold text-center text-slate-800 mb-1">{isRegister ? 'Register' : 'Sign In'}</h2>
+                        <p className="text-center text-slate-500 mb-6">
+                            {isRegister ? 'to start managing resources' : 'to access your dashboard'}
+                        </p>
+                        
+                        {GOOGLE_LOGIN_ENABLED && (
+                            <>
+                                <div className="flex justify-center">
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleSuccess}
+                                        onError={() => {
+                                            console.error('Login Failed');
+                                            toast.error('Google login failed. Please try again.');
+                                        }}
+                                        width="300px"
+                                        theme="outline"
+                                        shape="pill"
+                                    />
+                                </div>
+                                <div className="flex items-center my-6">
+                                    <div className="flex-grow border-t border-slate-200"></div>
+                                    <span className="mx-4 text-xs font-semibold text-slate-400">OR</span>
+                                    <div className="flex-grow border-t border-slate-200"></div>
+                                </div>
+                            </>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {isRegister && (
+                                <div className="relative">
+                                    <User className="absolute w-5 h-5 text-slate-400 top-1/2 -translate-y-1/2 left-3" />
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        placeholder="Full Name"
+                                        value={formData.name}
+                                        onChange={handleChange}
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-100 border-2 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+                            )}
+                            <div className="relative">
+                                <Mail className="absolute w-5 h-5 text-slate-400 top-1/2 -translate-y-1/2 left-3" />
+                                <input
+                                    type="email"
+                                    name="email"
+                                    placeholder="Email Address"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-100 border-2 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    required
+                                />
+                            </div>
+                            <div className="relative">
+                                <Lock className="absolute w-5 h-5 text-slate-400 top-1/2 -translate-y-1/2 left-3" />
+                                <input
+                                    type="password"
+                                    name="password"
+                                    placeholder="Password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-100 border-2 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    required
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className="w-full py-3 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400 flex items-center justify-center gap-2"
+                            >
+                                {submitting ? 'Processing...' : (isRegister ? 'Create Account' : 'Sign In')}
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                        </form>
+                        <p className="mt-6 text-sm text-center text-slate-500">
+                            {isRegister ? 'Already have an account?' : "Don't have an account?"}
+                            <button onClick={() => setIsRegister(!isRegister)} className="font-bold text-blue-600 hover:underline ml-1">
+                                {isRegister ? 'Sign In' : 'Register Now'}
+                            </button>
+                        </p>
                     </div>
                 </div>
             </div>

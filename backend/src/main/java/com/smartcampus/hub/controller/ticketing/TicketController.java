@@ -32,9 +32,9 @@ public class TicketController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
-    public ResponseEntity<List<Ticket>> getAllTickets() {
-        return ResponseEntity.ok(ticketService.getAllTickets());
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<Ticket>> getAllTickets(@AuthenticationPrincipal PrincipalUser principalUser) {
+        return ResponseEntity.ok(ticketService.getAllTickets(principalUser.getUsername()));
     }
 
     @GetMapping("/my")
@@ -43,23 +43,27 @@ public class TicketController {
     }
 
     @GetMapping("/assigned")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TECHNICIAN')")
     public ResponseEntity<List<Ticket>> getAssignedTickets(@AuthenticationPrincipal PrincipalUser principalUser) {
         return ResponseEntity.ok(ticketService.getAssignedTickets(principalUser.getUsername()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Ticket> getTicketById(@PathVariable String id) {
-        return ResponseEntity.ok(ticketService.getTicketById(id));
+    public ResponseEntity<Ticket> getTicketById(
+            @PathVariable String id,
+            @AuthenticationPrincipal PrincipalUser principalUser
+    ) {
+        return ResponseEntity.ok(ticketService.getTicketById(id, principalUser.getUsername()));
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Ticket> updateTicketStatus(
             @PathVariable String id,
+            @AuthenticationPrincipal PrincipalUser principalUser,
             @RequestParam TicketStatus status
     ) {
-        return ResponseEntity.ok(ticketService.updateTicketStatus(id, status));
+        return ResponseEntity.ok(ticketService.updateTicketStatus(id, status, principalUser.getUsername()));
     }
 
     @PatchMapping("/{id}/assign")
@@ -79,6 +83,6 @@ public class TicketController {
     ) {
         comment.setUserEmail(principalUser.getUsername());
         comment.setUserName(principalUser.getUser().getName());
-        return ResponseEntity.ok(ticketService.addComment(id, comment));
+        return ResponseEntity.ok(ticketService.addComment(id, comment, principalUser.getUsername()));
     }
 }

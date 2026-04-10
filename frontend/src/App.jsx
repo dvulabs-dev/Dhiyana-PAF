@@ -3,6 +3,7 @@ import { BookOpen } from 'lucide-react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import ErrorBoundary from './components/Common/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
 import AuthPage from './pages/Auth/AuthPage';
 import ResourceList from './pages/Catalogue/ResourceList';
@@ -78,7 +79,7 @@ const Dashboard = () => {
             description: 'Incident response, incident tracking, and resolution monitoring.',
             to: '/tickets',
             cta: 'Open Operations',
-            roles: ['USER', 'ADMIN', 'TECHNICIAN']
+            roles: ['USER', 'ADMIN', 'MANAGER', 'TECHNICIAN']
         },
         {
             title: 'Admin Operations',
@@ -125,7 +126,8 @@ const Dashboard = () => {
 const App = () => {
     return (
         <AuthProvider>
-            <NotificationProvider>
+            <ErrorBoundary>
+                <NotificationProvider>
                 <Router>
                     <Toaster position="top-right" />
                     <Routes>
@@ -137,9 +139,9 @@ const App = () => {
                         } />
                         <Route path="/catalogue" element={<RoleBasedRoute adminComponent={ResourceList} userComponent={UserCatalogue} adminRoles={['ADMIN', 'MANAGER']} />} />
                         <Route path="/bookings" element={<RoleBasedRoute adminComponent={MyBookings} userComponent={UserBookings} adminRoles={['ADMIN', 'MANAGER']} />} />
-                        <Route path="/tickets" element={<RoleBasedRoute adminComponent={TicketList} userComponent={UserSupport} adminRoles={['ADMIN', 'TECHNICIAN']} />} />
+                        <Route path="/tickets" element={<RoleBasedRoute adminComponent={TicketList} userComponent={UserSupport} adminRoles={['ADMIN', 'MANAGER', 'TECHNICIAN']} />} />
                         <Route path="/admin" element={
-                            <RoleGuard allowedRoles={['ADMIN']}>
+                            <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
                                 <MainLayout><AdminPanel /></MainLayout>
                             </RoleGuard>
                         } />
@@ -151,8 +153,9 @@ const App = () => {
                         <Route path="/unauthorized" element={<div>Unauthorized Access</div>} />
                         <Route path="*" element={<div>404 Not Found</div>} />
                     </Routes>
-                </Router>
-            </NotificationProvider>
+                                </Router>
+                </NotificationProvider>
+            </ErrorBoundary>
         </AuthProvider>
     );
 };

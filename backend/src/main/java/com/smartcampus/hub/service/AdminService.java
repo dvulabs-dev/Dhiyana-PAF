@@ -31,6 +31,7 @@ public class AdminService {
                         user.getId(),
                         user.getName(),
                         user.getEmail(),
+                    user.getDepartment(),
                         user.getRoles() == null ? List.of() : user.getRoles().stream().map(Enum::name).sorted().collect(Collectors.toList()),
                         user.getCreatedAt(),
                         user.getUpdatedAt()

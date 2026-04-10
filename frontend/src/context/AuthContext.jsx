@@ -70,8 +70,13 @@ export const AuthProvider = ({ children }) => {
   const login = (jwt, profile = null) => {
     setLoading(true);
     if (profile) {
-      setProfileOverride(profile);
-      localStorage.setItem('profileOverride', JSON.stringify(profile));
+      // Sanitize incoming profile to avoid storing token-like values as names
+      const safe = { ...profile };
+      if (safe.name && isTokenLike(safe.name)) safe.name = '';
+      if (safe.email && isTokenLike(safe.email)) safe.email = '';
+      if (safe.picture && isTokenLike(safe.picture)) safe.picture = '';
+      setProfileOverride(safe);
+      localStorage.setItem('profileOverride', JSON.stringify(safe));
     }
     setToken(jwt);
   };
