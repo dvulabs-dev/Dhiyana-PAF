@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, MapPin, Phone, Globe, Share2, MessageCircle, Link2, ArrowRight } from 'lucide-react';
+import { Mail, MapPin, Phone, Globe, Share2, MessageCircle, Link2, ArrowRight, Network } from 'lucide-react';
 
 const LandingFooter = () => {
     return (
@@ -17,7 +17,7 @@ const LandingFooter = () => {
                             The centralized intelligence platform for modern university infrastructure, asset management, and maintenance operations.
                         </p>
                         <div className="flex gap-4">
-                            {[Globe, Share2, MessageCircle, Link2].map((Icon, i) => (
+                            {[Globe, Share2, MessageCircle, Link2, Network].map((Icon, i) => (
                                 <a key={i} href="#" className="flex items-center justify-center w-10 h-10 transition-all rounded-full bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white">
                                     <Icon className="w-5 h-5" />
                                 </a>
