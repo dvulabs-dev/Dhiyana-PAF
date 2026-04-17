@@ -20,6 +20,7 @@ public class User {
     private String password;
     private String picture;
     private String department;
+    private Boolean active;
     
     private Set<Role> roles;
     
@@ -32,7 +33,7 @@ public class User {
     public User() {
     }
 
-    public User(String id, String name, String email, String password, String picture, String department, Set<Role> roles,
+    public User(String id, String name, String email, String password, String picture, String department, Boolean active, Set<Role> roles,
                 LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
@@ -40,6 +41,7 @@ public class User {
         this.password = password;
         this.picture = picture;
         this.department = department;
+        this.active = active;
         this.roles = roles;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -97,6 +99,14 @@ public class User {
         this.department = department;
     }
 
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
     public Set<Role> getRoles() {
         return roles;
     }
@@ -128,6 +138,7 @@ public class User {
         private String password;
         private String picture;
         private String department;
+        private Boolean active;
         private Set<Role> roles;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
@@ -162,6 +173,11 @@ public class User {
             return this;
         }
 
+        public Builder active(Boolean active) {
+            this.active = active;
+            return this;
+        }
+
         public Builder roles(Set<Role> roles) {
             this.roles = roles;
             return this;
@@ -178,7 +194,7 @@ public class User {
         }
 
         public User build() {
-            return new User(id, name, email, password, picture, department, roles, createdAt, updatedAt);
+            return new User(id, name, email, password, picture, department, active, roles, createdAt, updatedAt);
         }
     }
 }

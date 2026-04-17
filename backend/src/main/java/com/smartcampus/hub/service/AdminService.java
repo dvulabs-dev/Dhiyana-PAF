@@ -7,6 +7,7 @@ import com.smartcampus.hub.enums.Role;
 import com.smartcampus.hub.enums.ticketing.TicketStatus;
 import com.smartcampus.hub.repository.UserRepository;
 import com.smartcampus.hub.repository.ticketing.TicketRepository;
+import com.smartcampus.hub.security.PrincipalUser;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -31,12 +32,36 @@ public class AdminService {
                         user.getId(),
                         user.getName(),
                         user.getEmail(),
-                    user.getDepartment(),
+                        user.getDepartment(),
+                        user.getActive() == null || user.getActive(),
                         user.getRoles() == null ? List.of() : user.getRoles().stream().map(Enum::name).sorted().collect(Collectors.toList()),
                         user.getCreatedAt(),
                         user.getUpdatedAt()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    public AdminUserView updateUserActiveStatus(String userId, boolean active, PrincipalUser principalUser) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+        if (principalUser != null && user.getEmail() != null && user.getEmail().equalsIgnoreCase(principalUser.getUsername()) && !active) {
+            throw new IllegalArgumentException("You cannot deactivate your own account.");
+        }
+
+        user.setActive(active);
+        User saved = userRepository.save(user);
+
+        return new AdminUserView(
+                saved.getId(),
+                saved.getName(),
+                saved.getEmail(),
+                saved.getDepartment(),
+                saved.getActive() == null || saved.getActive(),
+                saved.getRoles() == null ? List.of() : saved.getRoles().stream().map(Enum::name).sorted().collect(Collectors.toList()),
+                saved.getCreatedAt(),
+                saved.getUpdatedAt()
+        );
     }
 
     public AdminOverviewDto getOverview() {
