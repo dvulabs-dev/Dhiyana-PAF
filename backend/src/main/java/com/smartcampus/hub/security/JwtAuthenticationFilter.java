@@ -48,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             if (user != null) {
                 PrincipalUser principalUser = new PrincipalUser(user);
-                if (jwtService.isTokenValid(jwt, principalUser)) {
+                if (principalUser.isEnabled() && jwtService.isTokenValid(jwt, principalUser)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             principalUser,
                             null,

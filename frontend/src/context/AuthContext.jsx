@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { updateProfile as updateProfileApi } from '../services/profileApi';
 
 const AuthContext = createContext();
 
@@ -89,6 +90,21 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateProfile = async (payload) => {
+    const updated = await updateProfileApi(payload);
+    setUser((prev) => ({ ...prev, ...updated }));
+
+    const nextOverride = {
+      name: updated?.name || '',
+      email: updated?.email || '',
+      picture: updated?.picture || ''
+    };
+    setProfileOverride(nextOverride);
+    localStorage.setItem('profileOverride', JSON.stringify(nextOverride));
+
+    return updated;
+  };
+
   const hasRole = (role) => {
     if (!user || !user.roles) return false;
     return user.roles.includes(role) || user.roles.includes(`ROLE_${role}`);
@@ -101,7 +117,7 @@ export const AuthProvider = ({ children }) => {
   const displayEmail = profileOverride?.email || user?.email || '';
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, hasRole, displayName, displayPicture, displayEmail }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, hasRole, displayName, displayPicture, displayEmail, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

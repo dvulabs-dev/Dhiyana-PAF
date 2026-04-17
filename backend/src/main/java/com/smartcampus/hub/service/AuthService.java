@@ -62,6 +62,7 @@ public class AuthService {
                 .name(name.isBlank() ? email : name)
                 .email(email)
                 .password(passwordEncoder.encode(password))
+            .active(true)
                 .roles(Set.of(Role.USER))
                 .build();
 
@@ -131,6 +132,7 @@ public class AuthService {
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .department(department)
+            .active(true)
                 .roles(Set.of(assignRole))
                 .build();
 
@@ -153,6 +155,10 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid email or password.");
         }
 
+        if (Boolean.FALSE.equals(user.getActive())) {
+            throw new IllegalArgumentException("This account is inactive. Please contact an administrator.");
+        }
+
         return generateToken(user);
     }
 
@@ -168,10 +174,15 @@ public class AuthService {
                             .email(email)
                             .name((name == null || name.isBlank()) ? email.split("@")[0] : name)
                             .picture(picture)
+                            .active(true)
                             .roles(Set.of(Role.USER))
                             .build();
                     return userRepository.save(newUser);
                 });
+
+        if (Boolean.FALSE.equals(user.getActive())) {
+            throw new IllegalArgumentException("This account is inactive. Please contact an administrator.");
+        }
 
         boolean changed = false;
         if ((user.getName() == null || user.getName().isBlank()) && name != null && !name.isBlank()) {

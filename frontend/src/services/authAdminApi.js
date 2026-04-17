@@ -31,3 +31,17 @@ export const getAllUsersForAdmin = async () => {
 
     return response.data;
 };
+
+export const setUserAccountStatus = async (userId, active) => {
+    const response = await axios.patch(
+        `http://localhost:8080/api/admin/users/${userId}/status`,
+        { active },
+        {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+        }
+    );
+
+    return response.data;
+};

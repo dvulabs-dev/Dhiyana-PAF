@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { UserPlus, Shield, Briefcase, Loader, Users, Search, Ticket, Wrench, Mail, Lock, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { createStaffAccount, getAdminOverview, getAllUsersForAdmin } from '../../services/authAdminApi';
+import { createStaffAccount, getAdminOverview, getAllUsersForAdmin, setUserAccountStatus } from '../../services/authAdminApi';
 import { useAuth } from '../../context/AuthContext';
 import { DEPARTMENTS } from '../../constants/departments';
 
 const AdminPanel = () => {
     const { user, hasRole } = useAuth();
+    const isAdmin = hasRole('ADMIN');
     const isManagerOnly = hasRole('MANAGER') && !hasRole('ADMIN');
     const managerDepartment = (user?.department || '').toUpperCase();
+    const currentUserEmail = (user?.email || '').toLowerCase();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -28,6 +30,7 @@ const AdminPanel = () => {
         inProgressTickets: 0
     });
     const [query, setQuery] = useState('');
+    const [updatingUserId, setUpdatingUserId] = useState(null);
 
     const loadAdminData = async () => {
         setLoadingData(true);
@@ -105,6 +108,28 @@ const AdminPanel = () => {
             toast.error(apiMessage || 'Failed to create staff account.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const isUserActive = (targetUser) => targetUser?.active !== false;
+
+    const handleToggleUserStatus = async (targetUser) => {
+        if (!isAdmin) return;
+        setUpdatingUserId(targetUser.id);
+        try {
+            const nextActive = !isUserActive(targetUser);
+            const updatedUser = await setUserAccountStatus(targetUser.id, nextActive);
+
+            setUsers((prev) => prev.map((entry) => (
+                entry.id === targetUser.id ? { ...entry, ...updatedUser } : entry
+            )));
+
+            toast.success(nextActive ? 'Account activated.' : 'Account deactivated.');
+        } catch (err) {
+            const apiMessage = err?.response?.data?.error || err?.response?.data;
+            toast.error(typeof apiMessage === 'string' ? apiMessage : 'Failed to update account status.');
+        } finally {
+            setUpdatingUserId(null);
         }
     };
 
@@ -336,6 +361,7 @@ const AdminPanel = () => {
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
                                             {staffMembers.map((user) => {
                                                 const primaryRole = (user.roles || [])[0]?.replace('ROLE_', '') || 'MEMBER';
+                                                const active = isUserActive(user);
                                                 
                                                 return (
                                                     <div key={user.id} className="bg-[#0f172a]/80 backdrop-blur-3xl rounded-[2rem] border border-slate-700/60 shadow-xl hover:shadow-[0_8px_30px_rgba(59,130,246,0.2)] hover:border-blue-500/50 transition-all duration-500 overflow-hidden flex flex-col relative group">
@@ -360,8 +386,12 @@ const AdminPanel = () => {
                                                             <h3 className="text-sm font-black text-white group-hover:text-blue-400 transition-colors truncate w-full text-center drop-shadow-md">{user.name || 'Anonymous User'}</h3>
                                                             <p className="text-[9.5px] uppercase tracking-[0.2em] font-bold text-slate-400 mt-0.5 mb-3">{primaryRole.toLowerCase()}</p>
                                                             
-                                                            <div className="px-3.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full text-[8.5px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-sm">
-                                                                ACTIVE
+                                                            <div className={`px-3.5 py-1 rounded-full text-[8.5px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-sm ${
+                                                                active
+                                                                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                                                                    : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+                                                            }`}>
+                                                                {active ? 'ACTIVE' : 'INACTIVE'}
                                                             </div>
                                                         </div>
 
@@ -386,9 +416,25 @@ const AdminPanel = () => {
                                                                 <span className="text-[8px] text-slate-500 mb-0.5 tracking-[0.2em]">Joined</span>
                                                                 <span className="text-blue-200">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}</span>
                                                             </div>
-                                                            <div className="w-1/2 px-4 py-3 flex flex-col items-center justify-center group-hover:bg-slate-800/30 transition-colors">
-                                                                <span className="text-[8px] text-slate-500 mb-0.5 tracking-[0.2em]">Access</span>
-                                                                <span className="text-blue-200">{primaryRole}</span>
+                                                            <div className="w-1/2 px-4 py-3 flex flex-col items-center justify-center gap-1.5 group-hover:bg-slate-800/30 transition-colors">
+                                                                {isAdmin ? (
+                                                                    <button
+                                                                        onClick={() => handleToggleUserStatus(user)}
+                                                                        disabled={updatingUserId === user.id || (user.email || '').toLowerCase() === currentUserEmail}
+                                                                        className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.15em] border transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                                                                            active
+                                                                                ? 'border-rose-400/40 text-rose-300 hover:bg-rose-500/10'
+                                                                                : 'border-emerald-400/40 text-emerald-300 hover:bg-emerald-500/10'
+                                                                        }`}
+                                                                    >
+                                                                        {updatingUserId === user.id ? 'Updating...' : (active ? 'Set Inactive' : 'Set Active')}
+                                                                    </button>
+                                                                ) : (
+                                                                    <>
+                                                                        <span className="text-[8px] text-slate-500 mb-0.5 tracking-[0.2em]">Access</span>
+                                                                        <span className="text-blue-200">{primaryRole}</span>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -419,13 +465,16 @@ const AdminPanel = () => {
                                                     <tr>
                                                         <th className="text-left px-8 py-5">Profile Name</th>
                                                         <th className="text-left px-6 py-5">Email Address</th>
+                                                        <th className="text-left px-6 py-5">Status</th>
                                                         <th className="text-left px-6 py-5">Clearance</th>
                                                         <th className="text-left px-6 py-5">Member Since</th>
+                                                        {isAdmin && <th className="text-left px-6 py-5">Action</th>}
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-700/50">
                                                     {normalUsers.map((user) => {
                                                         const primaryRole = (user.roles || [])[0]?.replace('ROLE_', '') || 'MEMBER';
+                                                        const active = isUserActive(user);
                                                         return (
                                                             <tr key={user.id} className="hover:bg-slate-800/40 transition-colors group">
                                                                 <td className="px-8 py-5">
@@ -438,6 +487,15 @@ const AdminPanel = () => {
                                                                 </td>
                                                                 <td className="px-6 py-5 text-slate-300 font-medium">{user.email}</td>
                                                                 <td className="px-6 py-5">
+                                                                    <span className={`px-3 py-1 border rounded-full text-[9px] font-black uppercase tracking-widest backdrop-blur-sm ${
+                                                                        active
+                                                                            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                                                            : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                                                                    }`}>
+                                                                        {active ? 'ACTIVE' : 'INACTIVE'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-5">
                                                                     <span className="px-3 py-1 bg-slate-800/50 text-slate-300 border border-slate-600/50 rounded-full text-[9px] font-black uppercase tracking-widest backdrop-blur-sm">
                                                                         {primaryRole}
                                                                     </span>
@@ -445,12 +503,27 @@ const AdminPanel = () => {
                                                                 <td className="px-6 py-5 text-blue-200 font-medium tracking-wide">
                                                                     {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
                                                                 </td>
+                                                                {isAdmin && (
+                                                                    <td className="px-6 py-5">
+                                                                        <button
+                                                                            onClick={() => handleToggleUserStatus(user)}
+                                                                            disabled={updatingUserId === user.id || (user.email || '').toLowerCase() === currentUserEmail}
+                                                                            className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                                                                                active
+                                                                                    ? 'border-rose-400/40 text-rose-300 hover:bg-rose-500/10'
+                                                                                    : 'border-emerald-400/40 text-emerald-300 hover:bg-emerald-500/10'
+                                                                            }`}
+                                                                        >
+                                                                            {updatingUserId === user.id ? 'Updating...' : (active ? 'Set Inactive' : 'Set Active')}
+                                                                        </button>
+                                                                    </td>
+                                                                )}
                                                             </tr>
                                                         );
                                                     })}
                                                     {normalUsers.length === 0 && (
                                                         <tr>
-                                                            <td colSpan="4" className="px-6 py-14 text-center text-slate-400 font-medium">
+                                                            <td colSpan={isAdmin ? '6' : '5'} className="px-6 py-14 text-center text-slate-400 font-medium">
                                                                 No general public users found matching your search.
                                                             </td>
                                                         </tr>
